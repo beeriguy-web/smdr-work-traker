@@ -71,6 +71,10 @@
             border-color: #1a3a5c;
             box-shadow: 0 0 0 .18rem rgba(26,58,92,.22);
         }
+        .form-control[readonly] {
+            background: #f4f7fb;
+            color: #333;
+        }
 
         /* ── Items table ── */
         #items-table { width: 100%; border-collapse: collapse; }
@@ -82,7 +86,7 @@
             text-align: center;
             border: 1px solid #2a5080;
         }
-        #items-table td { border: 1px solid #d0d8e4; padding: 3px; }
+        #items-table td { border: 1px solid #d0d8e4; padding: 6px 3px; }
         #items-table td input {
             border: none;
             width: 100%;
@@ -97,6 +101,36 @@
 
         /* ── Approval ── */
         .approval-wrap { border-top: 2px solid #1a3a5c; margin-top: 26px; padding-top: 4px; }
+
+        /* ── Signature canvas ── */
+        .sig-wrap {
+            border: 2px solid #cfd8e3;
+            border-radius: 6px;
+            background: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        #sig-canvas {
+            display: block;
+            width: 100%;
+            height: 130px;
+            touch-action: none;
+            cursor: crosshair;
+        }
+        .sig-clear-btn {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: rgba(190,40,40,.82);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 2px 10px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        .sig-clear-btn:hover { background: #c00; }
+        .sig-hint { font-size: 0.75rem; color: #999; margin-top: 3px; }
 
         /* ── Attachments ── */
         .drop-zone {
@@ -277,38 +311,33 @@
             </div>
         </div>
 
-        <!-- Work details -->
+        <!-- Work details (removed מיכלול) -->
         <div class="sec-label">פרטי עבודה</div>
         <div class="row g-3">
-            <div class="col-sm-3">
+            <div class="col-sm-4">
                 <label class="form-label">מספר עבודה:</label>
                 <input class="form-control" id="f-wnum" placeholder="מספר">
             </div>
-            <div class="col-sm-3">
+            <div class="col-sm-4">
                 <label class="form-label">מועד אספקה:</label>
                 <input class="form-control" type="date" id="f-delivery">
             </div>
-            <div class="col-sm-3">
+            <div class="col-sm-4">
                 <label class="form-label">הזמנת לקוח:</label>
                 <input class="form-control" id="f-corder" placeholder="מספר / הפניה">
             </div>
-            <div class="col-sm-3">
-                <label class="form-label">מס' עבודה מיכלול:</label>
-                <input class="form-control" id="f-michlol" placeholder="מספר">
-            </div>
         </div>
 
-        <!-- Items table -->
+        <!-- Items table (removed מספר קטלוגי column) -->
         <div class="sec-label">פירוט פריטים</div>
         <div class="table-responsive">
             <table id="items-table">
                 <thead>
                     <tr>
                         <th style="width:36px">#</th>
-                        <th style="width:120px">מספר קטלוגי</th>
                         <th>תאור</th>
-                        <th style="width:70px">כמות</th>
-                        <th style="width:170px">הערות</th>
+                        <th style="width:80px">כמות</th>
+                        <th style="width:200px">הערות</th>
                     </tr>
                 </thead>
                 <tbody id="items-body"></tbody>
@@ -322,6 +351,7 @@
         <!-- Description -->
         <div class="sec-label">תיאור העבודה</div>
         <textarea class="form-control" id="f-desc" rows="5" placeholder="פרט את העבודה הנדרשת, הנחיות מיוחדות, הערות..."></textarea>
+
         <!-- Attachments -->
         <div class="sec-label">קבצים מצורפים</div>
         <div class="drop-zone" id="drop-zone"
@@ -337,25 +367,25 @@
                onchange="handleFiles(this.files)">
         <div class="attach-grid" id="attach-grid"></div>
 
-        <!-- Approval -->
+        <!-- Approval (removed date, auto-filled name, canvas signature) -->
         <div class="approval-wrap">
             <div class="sec-label">אישור</div>
             <div class="row g-3">
-                <div class="col-sm-4">
+                <div class="col-sm-6">
                     <label class="form-label">מאושר ע"י:</label>
-                    <input class="form-control" id="f-appr-by" placeholder="שם מאשר">
+                    <input class="form-control" id="f-appr-by" value="גיא בארי" readonly>
                 </div>
-                <div class="col-sm-4">
+                <div class="col-sm-6">
                     <label class="form-label">תפקיד:</label>
                     <input class="form-control" id="f-appr-role" placeholder="תפקיד">
                 </div>
-                <div class="col-sm-4">
-                    <label class="form-label">תאריך אישור:</label>
-                    <input class="form-control" type="date" id="f-appr-date">
-                </div>
-                <div class="col-sm-6">
+                <div class="col-12">
                     <label class="form-label">חתימה:</label>
-                    <input class="form-control" id="f-sign" placeholder="הקלד שמך לחתימה דיגיטלית">
+                    <div class="sig-wrap">
+                        <canvas id="sig-canvas" width="800" height="180"></canvas>
+                        <button type="button" class="sig-clear-btn" onclick="clearSignature()">מחק חתימה</button>
+                    </div>
+                    <div class="sig-hint">חתום בעזרת העכבר או האצבע</div>
                 </div>
             </div>
         </div>
@@ -395,6 +425,65 @@
 document.getElementById('f-date').valueAsDate = new Date();
 for (let i = 0; i < 6; i++) addRow();
 
+/* ── Signature pad ── */
+(function () {
+    const canvas = document.getElementById('sig-canvas');
+    const ctx    = canvas.getContext('2d');
+    let drawing  = false;
+    let lastX = 0, lastY = 0;
+
+    function pos(e) {
+        const rect  = canvas.getBoundingClientRect();
+        const scaleX = canvas.width  / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const src = e.touches ? e.touches[0] : e;
+        return [(src.clientX - rect.left) * scaleX,
+                (src.clientY - rect.top)  * scaleY];
+    }
+
+    function startDraw(e) {
+        drawing = true;
+        [lastX, lastY] = pos(e);
+    }
+    function draw(e) {
+        if (!drawing) return;
+        const [x, y] = pos(e);
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.strokeStyle = '#1a3a5c';
+        ctx.lineWidth   = 2.8;
+        ctx.lineCap     = 'round';
+        ctx.lineJoin    = 'round';
+        ctx.stroke();
+        [lastX, lastY] = [x, y];
+    }
+    function endDraw() { drawing = false; }
+
+    canvas.addEventListener('mousedown',  startDraw);
+    canvas.addEventListener('mousemove',  draw);
+    canvas.addEventListener('mouseup',    endDraw);
+    canvas.addEventListener('mouseleave', endDraw);
+
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); startDraw(e); }, { passive: false });
+    canvas.addEventListener('touchmove',  e => { e.preventDefault(); draw(e); },      { passive: false });
+    canvas.addEventListener('touchend',   endDraw);
+})();
+
+function clearSignature() {
+    const canvas = document.getElementById('sig-canvas');
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function getSignatureDataUrl() {
+    const canvas = document.getElementById('sig-canvas');
+    const blank  = document.createElement('canvas');
+    blank.width  = canvas.width;
+    blank.height = canvas.height;
+    if (canvas.toDataURL() === blank.toDataURL()) return null;
+    return canvas.toDataURL('image/png');
+}
+
 /* ── Attachments ── */
 const attachments = [];
 
@@ -410,7 +499,7 @@ function fileIcon(type) {
 function handleFiles(fileList) {
     for (const file of fileList) {
         const isImage = file.type.startsWith('image/');
-        const reader = new FileReader();
+        const reader  = new FileReader();
         reader.onload = e => {
             attachments.push({ name: file.name, type: file.type, dataUrl: e.target.result, isImage });
             renderAttachments();
@@ -458,18 +547,17 @@ function copyLink() {
         toast('הקישור הועתק — אפשר לשלוח לעובדים ✓');
         setTimeout(() => { btn.innerHTML = '🔗 שתף קישור'; }, 2000);
     }).catch(() => {
-        prompt('העתק את הקישור:', window.location.href.split('?')[0]);
+        prompt('העתק את הקישור:', url);
     });
 }
 
-/* ── row management ── */
+/* ── Row management (no מספר קטלוגי) ── */
 function addRow() {
     const tbody = document.getElementById('items-body');
     const n = tbody.rows.length + 1;
     const tr = document.createElement('tr');
     tr.innerHTML =
         `<td class="row-num">${n}</td>
-         <td><input type="text" placeholder="מק"ט"></td>
          <td><input type="text" placeholder="תאור הפריט / עבודה"></td>
          <td><input type="number" min="0" placeholder="0" style="text-align:center"></td>
          <td><input type="text" placeholder="הערות"></td>`;
@@ -481,7 +569,7 @@ function removeRow() {
     if (tbody.rows.length > 1) tbody.deleteRow(tbody.rows.length - 1);
 }
 
-/* ── helpers ── */
+/* ── Helpers ── */
 function v(id) { return (document.getElementById(id)?.value || '').trim(); }
 
 function fmtDate(iso) {
@@ -501,7 +589,7 @@ function collectRows() {
     const rows = [];
     document.querySelectorAll('#items-body tr').forEach((tr, i) => {
         const inp = [...tr.querySelectorAll('input')].map(x => x.value.trim());
-        rows.push({ n: i + 1, cat: inp[0], desc: inp[1], qty: inp[2], notes: inp[3] });
+        rows.push({ n: i + 1, desc: inp[0], qty: inp[1], notes: inp[2] });
     });
     return rows;
 }
@@ -509,34 +597,43 @@ function collectRows() {
 function newForm() {
     if (!confirm('לאפס את הטופס ולהתחיל מחדש?')) return;
     ['f-client','f-site','f-contact','f-phone1','f-phone2','f-cemail',
-     'f-wnum','f-delivery','f-corder','f-michlol','f-desc',
-     'f-appr-by','f-appr-role','f-appr-date','f-sign'].forEach(id => {
+     'f-wnum','f-delivery','f-corder','f-desc','f-appr-role'].forEach(id => {
         document.getElementById(id).value = '';
     });
-    document.getElementById('f-date').valueAsDate = new Date();
-    document.getElementById('f-to').value = 'גל - מנהל משרד טכני';
-    document.getElementById('f-from').value = 'גיא בארי - מנהל מכירות ופרויקטים';
+    document.getElementById('f-date').valueAsDate  = new Date();
+    document.getElementById('f-to').value          = 'גל - מנהל משרד טכני';
+    document.getElementById('f-from').value        = 'גיא בארי - מנהל מכירות ופרויקטים';
+    document.getElementById('f-appr-by').value     = 'גיא בארי';
     document.getElementById('items-body').innerHTML = '';
     for (let i = 0; i < 6; i++) addRow();
     attachments.length = 0;
     renderAttachments();
+    clearSignature();
 }
 
 /* ── PDF ── */
 function buildPdfHTML() {
-    const rows = collectRows();
+    const rows   = collectRows();
+    const sigData = getSignatureDataUrl();
+
+    const secStyle = 'background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;white-space:nowrap;';
+    const tdStyle  = 'padding:3px 6px;vertical-align:top;';
+
     const rowsHTML = rows.map(r =>
         `<tr>
-            <td style="text-align:center;border:1px solid #bcc;padding:5px 4px;">${r.n}</td>
-            <td style="border:1px solid #bcc;padding:5px 6px;">${r.cat}</td>
-            <td style="border:1px solid #bcc;padding:5px 6px;">${r.desc}</td>
-            <td style="text-align:center;border:1px solid #bcc;padding:5px 4px;">${r.qty}</td>
-            <td style="border:1px solid #bcc;padding:5px 6px;">${r.notes}</td>
+            <td style="text-align:center;border:1px solid #bcc;padding:8px 4px;">${r.n}</td>
+            <td style="border:1px solid #bcc;padding:8px 6px;">${r.desc}</td>
+            <td style="text-align:center;border:1px solid #bcc;padding:8px 4px;">${r.qty}</td>
+            <td style="border:1px solid #bcc;padding:8px 6px;">${r.notes}</td>
          </tr>`
     ).join('');
 
+    const signatureHTML = sigData
+        ? `<img src="${sigData}" style="max-height:70px;max-width:220px;display:block;margin-top:4px;">`
+        : '<span style="color:#bbb;font-style:italic;">לא נחתם</span>';
+
     return `
-    <div style="direction:rtl;font-family:Arial,sans-serif;font-size:13px;color:#111;background:#fff;">
+    <div style="direction:rtl;font-family:Arial,sans-serif;font-size:13px;color:#111;background:#fff;word-spacing:2px;">
 
       <!-- Header -->
       <div style="background:#1a3a5c;color:#fff;padding:14px 18px;text-align:center;margin-bottom:16px;">
@@ -545,70 +642,69 @@ function buildPdfHTML() {
       </div>
 
       <!-- Meta -->
-      <table style="width:100%;margin-bottom:12px;">
+      <table style="width:100%;margin-bottom:12px;border-collapse:collapse;">
         <tr>
-          <td style="width:40%;padding:3px 6px;"><strong>אל:</strong> ${v('f-to')}</td>
-          <td style="width:35%;padding:3px 6px;"><strong>מאת:</strong> ${v('f-from')}</td>
-          <td style="width:25%;padding:3px 6px;"><strong>תאריך:</strong> ${fmtDate(v('f-date'))}</td>
+          <td style="width:40%;${tdStyle}"><strong>אל: </strong>${v('f-to')}</td>
+          <td style="width:35%;${tdStyle}"><strong>מאת: </strong>${v('f-from')}</td>
+          <td style="width:25%;${tdStyle}"><strong>תאריך: </strong>${fmtDate(v('f-date'))}</td>
         </tr>
       </table>
 
       <!-- Client -->
-      <div style="background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;">פרטי לקוח ואתר</div>
-      <table style="width:100%;margin-bottom:10px;">
+      <div style="${secStyle}">פרטי לקוח ואתר</div>
+      <table style="width:100%;margin-bottom:10px;border-collapse:collapse;">
         <tr>
-          <td style="width:34%;padding:3px 6px;"><strong>לקוח:</strong> ${v('f-client')}</td>
-          <td style="width:33%;padding:3px 6px;"><strong>אתר:</strong> ${v('f-site')}</td>
-          <td style="width:33%;padding:3px 6px;"><strong>איש קשר:</strong> ${v('f-contact')}</td>
+          <td style="width:34%;${tdStyle}"><strong>לקוח: </strong>${v('f-client')}</td>
+          <td style="width:33%;${tdStyle}"><strong>אתר: </strong>${v('f-site')}</td>
+          <td style="width:33%;${tdStyle}"><strong>איש קשר: </strong>${v('f-contact')}</td>
         </tr>
         <tr>
-          <td style="padding:3px 6px;"><strong>טלפון 1:</strong> ${v('f-phone1')}</td>
-          <td style="padding:3px 6px;"><strong>טלפון 2:</strong> ${v('f-phone2')}</td>
-          <td style="padding:3px 6px;"><strong>מייל:</strong> ${v('f-cemail')}</td>
-        </tr>
-      </table>
-
-      <!-- Work -->
-      <div style="background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;">פרטי עבודה</div>
-      <table style="width:100%;margin-bottom:10px;">
-        <tr>
-          <td style="width:25%;padding:3px 6px;"><strong>מס' עבודה:</strong> ${v('f-wnum')}</td>
-          <td style="width:25%;padding:3px 6px;"><strong>מועד אספקה:</strong> ${fmtDate(v('f-delivery'))}</td>
-          <td style="width:25%;padding:3px 6px;"><strong>הזמנת לקוח:</strong> ${v('f-corder')}</td>
-          <td style="width:25%;padding:3px 6px;"><strong>מיכלול:</strong> ${v('f-michlol')}</td>
+          <td style="${tdStyle}"><strong>טלפון 1: </strong>${v('f-phone1')}</td>
+          <td style="${tdStyle}"><strong>טלפון 2: </strong>${v('f-phone2')}</td>
+          <td style="${tdStyle}"><strong>מייל: </strong>${v('f-cemail')}</td>
         </tr>
       </table>
 
-      <!-- Items -->
-      <div style="background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;">פירוט פריטים</div>
-      <table style="width:100%;margin-bottom:12px;">
+      <!-- Work details (no מיכלול) -->
+      <div style="${secStyle}">פרטי עבודה</div>
+      <table style="width:100%;margin-bottom:10px;border-collapse:collapse;">
+        <tr>
+          <td style="width:33%;${tdStyle}"><strong>מס&apos; עבודה: </strong>${v('f-wnum')}</td>
+          <td style="width:34%;${tdStyle}"><strong>מועד אספקה: </strong>${fmtDate(v('f-delivery'))}</td>
+          <td style="width:33%;${tdStyle}"><strong>הזמנת לקוח: </strong>${v('f-corder')}</td>
+        </tr>
+      </table>
+
+      <!-- Items (no מספר קטלוגי) -->
+      <div style="${secStyle}">פירוט פריטים</div>
+      <table style="width:100%;margin-bottom:12px;border-collapse:collapse;">
         <thead>
           <tr style="background:#1a3a5c;color:#fff;">
             <th style="padding:6px 4px;width:36px;border:1px solid #2a5080;text-align:center;">#</th>
-            <th style="padding:6px;width:110px;border:1px solid #2a5080;">מספר קטלוגי</th>
             <th style="padding:6px;border:1px solid #2a5080;">תאור</th>
             <th style="padding:6px;width:60px;border:1px solid #2a5080;text-align:center;">כמות</th>
-            <th style="padding:6px;width:160px;border:1px solid #2a5080;">הערות</th>
+            <th style="padding:6px;width:180px;border:1px solid #2a5080;">הערות</th>
           </tr>
         </thead>
         <tbody>${rowsHTML}</tbody>
       </table>
 
       <!-- Description -->
-      <div style="background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;">תיאור העבודה</div>
+      <div style="${secStyle}">תיאור העבודה</div>
       <div style="border:1px solid #ccc;padding:10px;min-height:70px;white-space:pre-wrap;margin-bottom:14px;">${v('f-desc')}</div>
 
-      <!-- Approval -->
+      <!-- Approval (no date) -->
       <div style="border-top:2px solid #1a3a5c;padding-top:10px;margin-top:10px;">
-        <div style="background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin-bottom:8px;color:#1a3a5c;">אישור</div>
-        <table style="width:100%;">
+        <div style="${secStyle}">אישור</div>
+        <table style="width:100%;border-collapse:collapse;">
           <tr>
-            <td style="width:34%;padding:4px 6px;"><strong>מאושר ע"י:</strong> ${v('f-appr-by')}</td>
-            <td style="width:33%;padding:4px 6px;"><strong>תפקיד:</strong> ${v('f-appr-role')}</td>
-            <td style="width:33%;padding:4px 6px;"><strong>תאריך:</strong> ${fmtDate(v('f-appr-date'))}</td>
+            <td style="width:50%;${tdStyle}"><strong>מאושר ע&quot;י: </strong>${v('f-appr-by')}</td>
+            <td style="width:50%;${tdStyle}"><strong>תפקיד: </strong>${v('f-appr-role')}</td>
           </tr>
           <tr>
-            <td colspan="3" style="padding:4px 6px;"><strong>חתימה:</strong> ${v('f-sign')}</td>
+            <td colspan="2" style="${tdStyle}">
+              <strong>חתימה:</strong><br>${signatureHTML}
+            </td>
           </tr>
         </table>
       </div>
@@ -619,7 +715,7 @@ function buildPdfHTML() {
           const files = attachments.filter(a => !a.isImage);
           let out = '';
           if (imgs.length) {
-              out += `<div style="background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;">תמונות מצורפות</div>
+              out += `<div style="${secStyle}">תמונות מצורפות</div>
                       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
                         ${imgs.map(a => `<img src="${a.dataUrl}" alt="${a.name}"
                             style="max-width:340px;max-height:240px;border:1px solid #ccc;border-radius:4px;">`).join('')}
@@ -627,7 +723,7 @@ function buildPdfHTML() {
           }
           if (files.length) {
               out += `<div style="background:#fff8e1;border-right:4px solid #f5a623;padding:6px 10px;font-size:0.85em;margin-bottom:8px;color:#7a5500;">
-                        ⚠ קבצים אלה יש לצרף ידנית למייל:<br>
+                        קבצים אלה יש לצרף ידנית למייל:<br>
                         ${files.map(f => `• ${f.name}`).join('<br>')}
                       </div>`;
           }
@@ -642,25 +738,19 @@ function buildPdfHTML() {
 }
 
 async function downloadPDF() {
-    const client = v('f-client') || 'לקוח';
-    const wnum  = v('f-wnum')   || '';
-    const date  = fmtDate(v('f-date')).replace(/\//g, '-') || 'תאריך';
+    const client   = v('f-client') || 'לקוח';
+    const wnum     = v('f-wnum')   || '';
+    const date     = fmtDate(v('f-date')).replace(/\//g, '-') || 'תאריך';
     const filename = `הזמנת_עבודה_${client}_${wnum}_${date}.pdf`.replace(/\s+/g, '_');
 
     try {
         await html2pdf()
             .set({
-                margin: [10, 8, 10, 8],
+                margin:      [10, 8, 10, 8],
                 filename,
                 image:       { type: 'jpeg', quality: 0.97 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
-                    logging: false,
-                    allowTaint: true
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true, logging: false, allowTaint: true },
+                jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
             })
             .from(buildPdfHTML())
             .save();
@@ -675,9 +765,9 @@ async function downloadPDF() {
 
 /* ── Email ── */
 function buildEmailBody() {
-    const rows = collectRows().filter(r => r.cat || r.desc || r.qty);
+    const rows     = collectRows().filter(r => r.desc || r.qty);
     const rowLines = rows.map(r =>
-        `${r.n}. ${r.desc}${r.cat ? ' | מק"ט: ' + r.cat : ''}${r.qty ? ' | כמות: ' + r.qty : ''}${r.notes ? ' | ' + r.notes : ''}`
+        `${r.n}. ${r.desc}${r.qty ? ' | כמות: ' + r.qty : ''}${r.notes ? ' | ' + r.notes : ''}`
     ).join('\n');
 
     return `שלום גל,
@@ -692,7 +782,6 @@ function buildEmailBody() {
 מספר עבודה:  ${v('f-wnum')}
 מועד אספקה:  ${fmtDate(v('f-delivery'))}
 הזמנת לקוח:  ${v('f-corder')}
-מיכלול:       ${v('f-michlol')}
 ━━━━━━━━━━━━━━━━━━━
 ${rowLines ? 'פירוט פריטים:\n' + rowLines + '\n━━━━━━━━━━━━━━━━━━━\n' : ''}
 תיאור העבודה:
@@ -716,18 +805,14 @@ async function sendEmail() {
     );
     _pendingEmailBody = encodeURIComponent(buildEmailBody());
 
-    /* build file list for modal */
     const fileLines = [];
     if (filename) fileLines.push(`📄 <strong>${filename}</strong> (ה-PDF שהורד לـ Downloads)`);
-    attachments.filter(a => !a.isImage).forEach(f => {
-        fileLines.push(`📎 ${f.name}`);
-    });
+    attachments.filter(a => !a.isImage).forEach(f => { fileLines.push(`📎 ${f.name}`); });
     if (attachments.filter(a => a.isImage).length) {
         fileLines.push(`🖼 תמונות — מוטמעות בתוך ה-PDF, אין צורך לצרף`);
     }
 
-    const list = document.getElementById('modal-file-list');
-    list.innerHTML = fileLines.length
+    document.getElementById('modal-file-list').innerHTML = fileLines.length
         ? fileLines.join('<br>')
         : '📄 רק ה-PDF (הורד לתיקיית Downloads)';
 

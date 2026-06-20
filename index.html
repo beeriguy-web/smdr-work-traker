@@ -613,11 +613,14 @@ function newForm() {
 
 /* ── PDF ── */
 function buildPdfHTML() {
-    const rows   = collectRows();
+    const rows    = collectRows();
     const sigData = getSignatureDataUrl();
 
-    const secStyle = 'background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;white-space:nowrap;';
-    const tdStyle  = 'padding:3px 6px;vertical-align:top;';
+    // &#160; = non-breaking space — html2canvas cannot collapse it
+    const S = '&#160;';
+    const secStyle = 'background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;';
+    const tdStyle  = 'padding:4px 6px;vertical-align:top;';
+    const lbl = text => `<b>${text}:</b>${S}`;
 
     const rowsHTML = rows.map(r =>
         `<tr>
@@ -630,53 +633,53 @@ function buildPdfHTML() {
 
     const signatureHTML = sigData
         ? `<img src="${sigData}" style="max-height:70px;max-width:220px;display:block;margin-top:4px;">`
-        : '<span style="color:#bbb;font-style:italic;">לא נחתם</span>';
+        : `<span style="color:#bbb;font-style:italic;">${S}לא${S}נחתם</span>`;
 
     return `
-    <div style="direction:rtl;font-family:Arial,sans-serif;font-size:13px;color:#111;background:#fff;word-spacing:2px;">
+    <div style="direction:rtl;font-family:Arial,sans-serif;font-size:13px;color:#111;background:#fff;">
 
       <!-- Header -->
       <div style="background:#1a3a5c;color:#fff;padding:14px 18px;text-align:center;margin-bottom:16px;">
-        <div style="font-size:1.25em;font-weight:700;">שמדר טכנולוגיות בע"מ</div>
-        <div style="font-size:0.9em;margin-top:3px;opacity:.85;">טופס הזמנת עבודה פנימית</div>
+        <div style="font-size:1.25em;font-weight:700;">שמדר${S}טכנולוגיות${S}בע"מ</div>
+        <div style="font-size:0.9em;margin-top:3px;opacity:.85;">טופס${S}הזמנת${S}עבודה${S}פנימית</div>
       </div>
 
       <!-- Meta -->
       <table style="width:100%;margin-bottom:12px;border-collapse:collapse;">
         <tr>
-          <td style="width:40%;${tdStyle}"><strong>אל: </strong>${v('f-to')}</td>
-          <td style="width:35%;${tdStyle}"><strong>מאת: </strong>${v('f-from')}</td>
-          <td style="width:25%;${tdStyle}"><strong>תאריך: </strong>${fmtDate(v('f-date'))}</td>
+          <td style="width:40%;${tdStyle}">${lbl('אל')}${v('f-to')}</td>
+          <td style="width:35%;${tdStyle}">${lbl('מאת')}${v('f-from')}</td>
+          <td style="width:25%;${tdStyle}">${lbl('תאריך')}${fmtDate(v('f-date'))}</td>
         </tr>
       </table>
 
       <!-- Client -->
-      <div style="${secStyle}">פרטי לקוח ואתר</div>
+      <div style="${secStyle}">פרטי${S}לקוח${S}ואתר</div>
       <table style="width:100%;margin-bottom:10px;border-collapse:collapse;">
         <tr>
-          <td style="width:34%;${tdStyle}"><strong>לקוח: </strong>${v('f-client')}</td>
-          <td style="width:33%;${tdStyle}"><strong>אתר: </strong>${v('f-site')}</td>
-          <td style="width:33%;${tdStyle}"><strong>איש קשר: </strong>${v('f-contact')}</td>
+          <td style="width:34%;${tdStyle}">${lbl('לקוח')}${v('f-client')}</td>
+          <td style="width:33%;${tdStyle}">${lbl('אתר')}${v('f-site')}</td>
+          <td style="width:33%;${tdStyle}">${lbl('איש&#160;קשר')}${v('f-contact')}</td>
         </tr>
         <tr>
-          <td style="${tdStyle}"><strong>טלפון 1: </strong>${v('f-phone1')}</td>
-          <td style="${tdStyle}"><strong>טלפון 2: </strong>${v('f-phone2')}</td>
-          <td style="${tdStyle}"><strong>מייל: </strong>${v('f-cemail')}</td>
+          <td style="${tdStyle}">${lbl('טלפון&#160;1')}${v('f-phone1')}</td>
+          <td style="${tdStyle}">${lbl('טלפון&#160;2')}${v('f-phone2')}</td>
+          <td style="${tdStyle}">${lbl('מייל')}${v('f-cemail')}</td>
         </tr>
       </table>
 
       <!-- Work details (no מיכלול) -->
-      <div style="${secStyle}">פרטי עבודה</div>
+      <div style="${secStyle}">פרטי${S}עבודה</div>
       <table style="width:100%;margin-bottom:10px;border-collapse:collapse;">
         <tr>
-          <td style="width:33%;${tdStyle}"><strong>מס&apos; עבודה: </strong>${v('f-wnum')}</td>
-          <td style="width:34%;${tdStyle}"><strong>מועד אספקה: </strong>${fmtDate(v('f-delivery'))}</td>
-          <td style="width:33%;${tdStyle}"><strong>הזמנת לקוח: </strong>${v('f-corder')}</td>
+          <td style="width:33%;${tdStyle}">${lbl("מס'&#160;עבודה")}${v('f-wnum')}</td>
+          <td style="width:34%;${tdStyle}">${lbl('מועד&#160;אספקה')}${fmtDate(v('f-delivery'))}</td>
+          <td style="width:33%;${tdStyle}">${lbl('הזמנת&#160;לקוח')}${v('f-corder')}</td>
         </tr>
       </table>
 
       <!-- Items (no מספר קטלוגי) -->
-      <div style="${secStyle}">פירוט פריטים</div>
+      <div style="${secStyle}">פירוט${S}פריטים</div>
       <table style="width:100%;margin-bottom:12px;border-collapse:collapse;">
         <thead>
           <tr style="background:#1a3a5c;color:#fff;">
@@ -690,7 +693,7 @@ function buildPdfHTML() {
       </table>
 
       <!-- Description -->
-      <div style="${secStyle}">תיאור העבודה</div>
+      <div style="${secStyle}">תיאור${S}העבודה</div>
       <div style="border:1px solid #ccc;padding:10px;min-height:70px;white-space:pre-wrap;margin-bottom:14px;">${v('f-desc')}</div>
 
       <!-- Approval (no date) -->
@@ -698,12 +701,12 @@ function buildPdfHTML() {
         <div style="${secStyle}">אישור</div>
         <table style="width:100%;border-collapse:collapse;">
           <tr>
-            <td style="width:50%;${tdStyle}"><strong>מאושר ע&quot;י: </strong>${v('f-appr-by')}</td>
-            <td style="width:50%;${tdStyle}"><strong>תפקיד: </strong>${v('f-appr-role')}</td>
+            <td style="width:50%;${tdStyle}">${lbl('מאושר&#160;ע&quot;י')}${v('f-appr-by')}</td>
+            <td style="width:50%;${tdStyle}">${lbl('תפקיד')}${v('f-appr-role')}</td>
           </tr>
           <tr>
             <td colspan="2" style="${tdStyle}">
-              <strong>חתימה:</strong><br>${signatureHTML}
+              <b>חתימה:</b><br>${signatureHTML}
             </td>
           </tr>
         </table>
@@ -715,7 +718,7 @@ function buildPdfHTML() {
           const files = attachments.filter(a => !a.isImage);
           let out = '';
           if (imgs.length) {
-              out += `<div style="${secStyle}">תמונות מצורפות</div>
+              out += `<div style="${secStyle}">תמונות${S}מצורפות</div>
                       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
                         ${imgs.map(a => `<img src="${a.dataUrl}" alt="${a.name}"
                             style="max-width:340px;max-height:240px;border:1px solid #ccc;border-radius:4px;">`).join('')}

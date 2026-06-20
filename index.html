@@ -214,32 +214,52 @@
         }
         .toast-msg.show { opacity: 1; }
 
-        /* ── PDF print zone (off-screen, never display:none) ── */
-        #pdf-zone {
-            position: fixed;
-            left: -9999px;
-            top: 0;
-            width: 790px;
-            background: #fff;
-            direction: rtl;
-            font-family: Arial, sans-serif;
-            font-size: 13px;
-            color: #000;
-            padding: 20px 24px;
-            pointer-events: none;
-        }
-        #pdf-zone table { border-collapse: collapse; }
-
         @media (max-width: 600px) {
             .toolbar-title { font-size: 0.9rem; }
             .form-card { margin: 10px 6px 50px; border-radius: 8px; }
             #items-table th, #items-table td { font-size: 0.75rem; }
         }
 
+        /* ── Print / Save-as-PDF styles ── */
         @media print {
-            .toolbar { display: none !important; }
-            body { background: #fff !important; }
-            .form-card { box-shadow: none; margin: 0; }
+            @page { margin: 12mm 10mm; }
+
+            /* hide all interactive UI */
+            .toolbar,
+            .d-flex.gap-2.mt-2,
+            .drop-zone,
+            #file-input,
+            .form-footer,
+            .sig-clear-btn,
+            .sig-hint,
+            .toast-msg,
+            #email-modal,
+            #pdf-zone,
+            .remove-btn { display: none !important; }
+
+            body { background: #fff !important; font-size: 11pt; margin: 0; }
+
+            .form-card {
+                box-shadow: none !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                border-radius: 0 !important;
+            }
+
+            /* preserve background colors in print */
+            .form-header,
+            #items-table th,
+            .sec-label {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .form-control {
+                border: 1px solid #bbb !important;
+                box-shadow: none !important;
+            }
+
+            #items-table { page-break-inside: avoid; }
         }
     </style>
 </head>
@@ -419,7 +439,6 @@
 </div>
 
 <!-- ════ SCRIPTS ════ -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 /* ── init ── */
 document.getElementById('f-date').valueAsDate = new Date();
@@ -742,30 +761,10 @@ function buildPdfHTML() {
     </div>`;
 }
 
-async function downloadPDF() {
-    const client   = v('f-client') || 'לקוח';
-    const wnum     = v('f-wnum')   || '';
-    const date     = fmtDate(v('f-date')).replace(/\//g, '-') || 'תאריך';
-    const filename = `הזמנת_עבודה_${client}_${wnum}_${date}.pdf`.replace(/\s+/g, '_');
-
-    try {
-        await html2pdf()
-            .set({
-                margin:      [10, 8, 10, 8],
-                filename,
-                image:       { type: 'jpeg', quality: 0.97 },
-                html2canvas: { scale: 2, useCORS: true, letterRendering: false, logging: false, allowTaint: true },
-                jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            })
-            .from(buildPdfHTML())
-            .save();
-        toast('PDF הורד בהצלחה ✓');
-        return filename;
-    } catch (e) {
-        toast('שגיאה ביצירת PDF');
-        console.error(e);
-        return null;
-    }
+function downloadPDF() {
+    window.print();
+    toast('בחלון ההדפסה — בחר "שמור כ-PDF" ✓');
+    return `הזמנת_עבודה_${(v('f-client')||'לקוח')}_${v('f-wnum')||''}.pdf`;
 }
 
 /* ── Email ── */
@@ -802,19 +801,17 @@ ${v('f-from')}`;
 let _pendingEmailSubject = '';
 let _pendingEmailBody    = '';
 
-async function sendEmail() {
-    const filename = await downloadPDF();
-
+function sendEmail() {
     _pendingEmailSubject = encodeURIComponent(
         `הזמנת עבודה – ${v('f-client')} – מס' ${v('f-wnum')} – ${fmtDate(v('f-date'))}`
     );
     _pendingEmailBody = encodeURIComponent(buildEmailBody());
 
     const fileLines = [];
-    if (filename) fileLines.push(`📄 <strong>${filename}</strong> (ה-PDF שהורד לـ Downloads)`);
+    fileLines.push(`📄 <strong>PDF של הטופס</strong> — לחץ "PDF" למעלה, ושמור כ-PDF מחלון ההדפסה`);
     attachments.filter(a => !a.isImage).forEach(f => { fileLines.push(`📎 ${f.name}`); });
     if (attachments.filter(a => a.isImage).length) {
-        fileLines.push(`🖼 תמונות — מוטמעות בתוך ה-PDF, אין צורך לצרף`);
+        fileLines.push(`🖼 תמונות — צורפו לטופס`);
     }
 
     document.getElementById('modal-file-list').innerHTML = fileLines.length

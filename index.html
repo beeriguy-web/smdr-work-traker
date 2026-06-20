@@ -642,26 +642,28 @@ function buildPdfHTML() {
 }
 
 async function downloadPDF() {
-    const zone = document.getElementById('pdf-zone');
-    zone.innerHTML = buildPdfHTML();
-
-    /* give browser one frame to render the off-screen element */
-    await new Promise(r => requestAnimationFrame(r));
-    await new Promise(r => setTimeout(r, 80));
-
     const client = v('f-client') || 'לקוח';
     const wnum  = v('f-wnum')   || '';
     const date  = fmtDate(v('f-date')).replace(/\//g, '-') || 'תאריך';
     const filename = `הזמנת_עבודה_${client}_${wnum}_${date}.pdf`.replace(/\s+/g, '_');
 
     try {
-        await html2pdf().set({
-            margin: [10, 8, 10, 8],
-            filename,
-            image:       { type: 'jpeg', quality: 0.97 },
-            html2canvas: { scale: 2, useCORS: true, letterRendering: true, logging: false },
-            jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).from(zone).save();
+        await html2pdf()
+            .set({
+                margin: [10, 8, 10, 8],
+                filename,
+                image:       { type: 'jpeg', quality: 0.97 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    logging: false,
+                    allowTaint: true
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            })
+            .from(buildPdfHTML())
+            .save();
         toast('PDF הורד בהצלחה ✓');
         return filename;
     } catch (e) {

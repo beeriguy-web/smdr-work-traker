@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הזמנת עבודה | שמדר טכנולוגיות</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #eef2f7;
+            font-family: Arial, 'Segoe UI', sans-serif;
+            font-size: 15px;
+        }
+
+        /* ── Toolbar ── */
+        .toolbar {
+            background: #1a3a5c;
+            color: #fff;
+            padding: 10px 18px;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            box-shadow: 0 2px 8px rgba(0,0,0,.35);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .toolbar-title { font-size: 1.05rem; font-weight: 700; }
+        .toolbar .btn { font-size: 0.85rem; padding: 6px 14px; }
+
+        /* ── Card ── */
+        .form-card {
+            max-width: 860px;
+            margin: 22px auto 60px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 3px 16px rgba(0,0,0,.1);
+            overflow: hidden;
+        }
+
+        /* ── Form header ── */
+        .form-header {
+            background: #1a3a5c;
+            color: #fff;
+            padding: 18px 24px;
+            text-align: center;
+        }
+        .form-header .co-name { font-size: 1.3rem; font-weight: 700; }
+        .form-header .form-title { font-size: 0.95rem; opacity: .85; margin-top: 3px; }
+
+        /* ── Section label ── */
+        .sec-label {
+            background: #e6edf5;
+            border-right: 4px solid #1a3a5c;
+            padding: 5px 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1a3a5c;
+            margin: 18px 0 10px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .form-label { font-weight: 600; font-size: 0.88rem; color: #333; margin-bottom: 3px; }
+        .form-control, .form-select {
+            font-size: 0.9rem;
+            border-color: #cfd8e3;
+        }
+        .form-control:focus {
+            border-color: #1a3a5c;
+            box-shadow: 0 0 0 .18rem rgba(26,58,92,.22);
+        }
+
+        /* ── Items table ── */
+        #items-table { width: 100%; border-collapse: collapse; }
+        #items-table th {
+            background: #1a3a5c;
+            color: #fff;
+            padding: 7px 6px;
+            font-size: 0.82rem;
+            text-align: center;
+            border: 1px solid #2a5080;
+        }
+        #items-table td { border: 1px solid #d0d8e4; padding: 3px; }
+        #items-table td input {
+            border: none;
+            width: 100%;
+            padding: 5px 6px;
+            font-size: 0.88rem;
+            background: transparent;
+            outline: none;
+        }
+        #items-table td input:focus { background: #f0f6ff; }
+        .row-num { text-align: center; background: #f4f7fb; color: #888; font-size: 0.8rem; width: 36px; }
+        #items-table tr:nth-child(even) td { background: #fafbfd; }
+
+        /* ── Approval ── */
+        .approval-wrap { border-top: 2px solid #1a3a5c; margin-top: 26px; padding-top: 4px; }
+
+        /* ── Attachments ── */
+        .drop-zone {
+            border: 2px dashed #a0b4c8;
+            border-radius: 8px;
+            padding: 22px;
+            text-align: center;
+            color: #6a8aaa;
+            cursor: pointer;
+            transition: background .2s, border-color .2s;
+            background: #f8fafc;
+        }
+        .drop-zone:hover, .drop-zone.drag-over {
+            background: #e8f0f8;
+            border-color: #1a3a5c;
+            color: #1a3a5c;
+        }
+        .drop-zone .drop-icon { font-size: 2rem; line-height: 1; }
+        .drop-zone .drop-hint { font-size: 0.83rem; margin-top: 4px; }
+
+        .attach-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .attach-item {
+            position: relative;
+            border: 1px solid #d0dce8;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #f4f7fb;
+        }
+        .attach-item.is-image { width: 110px; height: 90px; }
+        .attach-item.is-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .attach-item.is-file {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            max-width: 220px;
+        }
+        .attach-item .file-icon { font-size: 1.5rem; line-height: 1; flex-shrink: 0; }
+        .attach-item .file-name { font-size: 0.78rem; color: #444; word-break: break-all; }
+        .attach-item .remove-btn {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            background: rgba(180,0,0,.75);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            line-height: 20px;
+            text-align: center;
+            cursor: pointer;
+            padding: 0;
+        }
+        .attach-item .remove-btn:hover { background: #c00; }
+
+        /* ── Footer note ── */
+        .form-footer { font-size: 0.72rem; color: #aaa; margin-top: 18px; text-align: left; direction: ltr; }
+
+        /* ── Toast ── */
+        .toast-msg {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a3a5c;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 24px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity .3s;
+            z-index: 999;
+            pointer-events: none;
+        }
+        .toast-msg.show { opacity: 1; }
+
+        /* ── PDF print zone ── */
+        #pdf-zone {
+            display: none;
+            direction: rtl;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            background: #fff;
+            padding: 20px 24px;
+            width: 790px;
+            color: #000;
+        }
+        #pdf-zone table { border-collapse: collapse; }
+
+        @media (max-width: 600px) {
+            .toolbar-title { font-size: 0.9rem; }
+            .form-card { margin: 10px 6px 50px; border-radius: 8px; }
+            #items-table th, #items-table td { font-size: 0.75rem; }
+        }
+
+        @media print {
+            .toolbar { display: none !important; }
+            body { background: #fff !important; }
+            .form-card { box-shadow: none; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ════ TOOLBAR ════ -->
+<div class="toolbar">
+    <span class="toolbar-title">📋 טופס הזמנת עבודה פנימית</span>
+    <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-light" onclick="newForm()">טופס חדש</button>
+        <button class="btn btn-outline-light" onclick="copyLink()" id="btn-share" title="העתק קישור לטופס לשיתוף עם עובדים">🔗 שתף קישור</button>
+        <button class="btn btn-warning text-dark fw-bold" onclick="downloadPDF()">⬇ PDF</button>
+        <button class="btn btn-success fw-bold" onclick="sendEmail()">✉ שלח במייל</button>
+    </div>
+</div>
+
+<!-- ════ FORM CARD ════ -->
+<div class="form-card" id="main-form">
+
+    <div class="form-header">
+        <div class="co-name">שמדר טכנולוגיות בע"מ</div>
+        <div class="form-title">טופס הזמנת עבודה פנימית</div>
+    </div>
+
+    <div class="p-3 p-md-4">
+
+        <!-- Meta row -->
+        <div class="row g-3 mb-1">
+            <div class="col-md-5">
+                <label class="form-label">אל:</label>
+                <input class="form-control" id="f-to" value="גל - מנהל משרד טכני">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">מאת:</label>
+                <input class="form-control" id="f-from" value="גיא בארי - מנהל מכירות ופרויקטים">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">תאריך:</label>
+                <input class="form-control" type="date" id="f-date">
+            </div>
+        </div>
+
+        <!-- Client -->
+        <div class="sec-label">פרטי לקוח ואתר</div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">שם לקוח:</label>
+                <input class="form-control" id="f-client" placeholder="שם חברה / לקוח">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">אתר:</label>
+                <input class="form-control" id="f-site" placeholder="שם / כתובת האתר">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">איש קשר:</label>
+                <input class="form-control" id="f-contact" placeholder="שם מלא">
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label">טלפון 1:</label>
+                <input class="form-control" type="tel" id="f-phone1" placeholder="05X-XXXXXXX">
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label">טלפון 2:</label>
+                <input class="form-control" type="tel" id="f-phone2" placeholder="05X-XXXXXXX">
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label">מייל לקוח:</label>
+                <input class="form-control" type="email" id="f-cemail" placeholder="email@domain.com">
+            </div>
+        </div>
+
+        <!-- Work details -->
+        <div class="sec-label">פרטי עבודה</div>
+        <div class="row g-3">
+            <div class="col-sm-3">
+                <label class="form-label">מספר עבודה:</label>
+                <input class="form-control" id="f-wnum" placeholder="מספר">
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label">מועד אספקה:</label>
+                <input class="form-control" type="date" id="f-delivery">
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label">הזמנת לקוח:</label>
+                <input class="form-control" id="f-corder" placeholder="מספר / הפניה">
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label">מס' עבודה מיכלול:</label>
+                <input class="form-control" id="f-michlol" placeholder="מספר">
+            </div>
+        </div>
+
+        <!-- Items table -->
+        <div class="sec-label">פירוט פריטים</div>
+        <div class="table-responsive">
+            <table id="items-table">
+                <thead>
+                    <tr>
+                        <th style="width:36px">#</th>
+                        <th style="width:120px">מספר קטלוגי</th>
+                        <th>תאור</th>
+                        <th style="width:70px">כמות</th>
+                        <th style="width:170px">הערות</th>
+                    </tr>
+                </thead>
+                <tbody id="items-body"></tbody>
+            </table>
+        </div>
+        <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-sm btn-outline-primary" onclick="addRow()">+ הוסף שורה</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="removeRow()">− הסר שורה</button>
+        </div>
+
+        <!-- Description -->
+        <div class="sec-label">תיאור העבודה</div>
+        <textarea class="form-control" id="f-desc" rows="5" placeholder="פרט את העבודה הנדרשת, הנחיות מיוחדות, הערות..."></textarea>
+        <!-- Attachments -->
+        <div class="sec-label">קבצים מצורפים</div>
+        <div class="drop-zone" id="drop-zone"
+             onclick="document.getElementById('file-input').click()"
+             ondragover="onDragOver(event)"
+             ondragleave="onDragLeave(event)"
+             ondrop="onDrop(event)">
+            <div class="drop-icon">📎</div>
+            <div>גרור קבצים לכאן או <strong>לחץ לבחירה</strong></div>
+            <div class="drop-hint">תמונות יוטמעו ב-PDF • קבצים אחרים יופיעו כרשימה לצירוף ידני</div>
+        </div>
+        <input type="file" id="file-input" multiple style="display:none"
+               onchange="handleFiles(this.files)">
+        <div class="attach-grid" id="attach-grid"></div>
+
+        <!-- Approval -->
+        <div class="approval-wrap">
+            <div class="sec-label">אישור</div>
+            <div class="row g-3">
+                <div class="col-sm-4">
+                    <label class="form-label">מאושר ע"י:</label>
+                    <input class="form-control" id="f-appr-by" placeholder="שם מאשר">
+                </div>
+                <div class="col-sm-4">
+                    <label class="form-label">תפקיד:</label>
+                    <input class="form-control" id="f-appr-role" placeholder="תפקיד">
+                </div>
+                <div class="col-sm-4">
+                    <label class="form-label">תאריך אישור:</label>
+                    <input class="form-control" type="date" id="f-appr-date">
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">חתימה:</label>
+                    <input class="form-control" id="f-sign" placeholder="הקלד שמך לחתימה דיגיטלית">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-footer">טופס מס': 27/06/2011 | גרסה דיגיטלית 2025</div>
+    </div>
+</div>
+
+<!-- ════ TOAST ════ -->
+<div class="toast-msg" id="toast"></div>
+
+<!-- ════ PDF ZONE (hidden, captured by html2pdf) ════ -->
+<div id="pdf-zone"></div>
+
+<!-- ════ SCRIPTS ════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+/* ── init ── */
+document.getElementById('f-date').valueAsDate = new Date();
+for (let i = 0; i < 6; i++) addRow();
+
+/* ── Attachments ── */
+const attachments = [];
+
+function fileIcon(type) {
+    if (type.includes('pdf'))   return '📄';
+    if (type.includes('word') || type.includes('document')) return '📝';
+    if (type.includes('excel') || type.includes('sheet') || type.includes('csv')) return '📊';
+    if (type.includes('dwg') || type.includes('dxf') || type.includes('cad')) return '📐';
+    if (type.includes('zip') || type.includes('rar') || type.includes('7z')) return '🗜';
+    return '📎';
+}
+
+function handleFiles(fileList) {
+    for (const file of fileList) {
+        const isImage = file.type.startsWith('image/');
+        const reader = new FileReader();
+        reader.onload = e => {
+            attachments.push({ name: file.name, type: file.type, dataUrl: e.target.result, isImage });
+            renderAttachments();
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function removeAttachment(idx) {
+    attachments.splice(idx, 1);
+    renderAttachments();
+}
+
+function renderAttachments() {
+    const grid = document.getElementById('attach-grid');
+    grid.innerHTML = attachments.map((a, i) => {
+        if (a.isImage) {
+            return `<div class="attach-item is-image">
+                      <img src="${a.dataUrl}" alt="${a.name}" title="${a.name}">
+                      <button class="remove-btn" onclick="removeAttachment(${i})">✕</button>
+                    </div>`;
+        }
+        return `<div class="attach-item is-file">
+                  <span class="file-icon">${fileIcon(a.type)}</span>
+                  <span class="file-name">${a.name}</span>
+                  <button class="remove-btn" style="position:static;width:18px;height:18px;font-size:.7rem;flex-shrink:0;" onclick="removeAttachment(${i})">✕</button>
+                </div>`;
+    }).join('');
+}
+
+function onDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function onDragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function onDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+}
+
+/* ── Share link ── */
+function copyLink() {
+    const url = window.location.href.split('?')[0];
+    navigator.clipboard.writeText(url).then(() => {
+        const btn = document.getElementById('btn-share');
+        btn.textContent = '✓ הועתק!';
+        toast('הקישור הועתק — אפשר לשלוח לעובדים ✓');
+        setTimeout(() => { btn.innerHTML = '🔗 שתף קישור'; }, 2000);
+    }).catch(() => {
+        prompt('העתק את הקישור:', window.location.href.split('?')[0]);
+    });
+}
+
+/* ── row management ── */
+function addRow() {
+    const tbody = document.getElementById('items-body');
+    const n = tbody.rows.length + 1;
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+        `<td class="row-num">${n}</td>
+         <td><input type="text" placeholder="מק"ט"></td>
+         <td><input type="text" placeholder="תאור הפריט / עבודה"></td>
+         <td><input type="number" min="0" placeholder="0" style="text-align:center"></td>
+         <td><input type="text" placeholder="הערות"></td>`;
+    tbody.appendChild(tr);
+}
+
+function removeRow() {
+    const tbody = document.getElementById('items-body');
+    if (tbody.rows.length > 1) tbody.deleteRow(tbody.rows.length - 1);
+}
+
+/* ── helpers ── */
+function v(id) { return (document.getElementById(id)?.value || '').trim(); }
+
+function fmtDate(iso) {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+}
+
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function collectRows() {
+    const rows = [];
+    document.querySelectorAll('#items-body tr').forEach((tr, i) => {
+        const inp = [...tr.querySelectorAll('input')].map(x => x.value.trim());
+        rows.push({ n: i + 1, cat: inp[0], desc: inp[1], qty: inp[2], notes: inp[3] });
+    });
+    return rows;
+}
+
+function newForm() {
+    if (!confirm('לאפס את הטופס ולהתחיל מחדש?')) return;
+    ['f-client','f-site','f-contact','f-phone1','f-phone2','f-cemail',
+     'f-wnum','f-delivery','f-corder','f-michlol','f-desc',
+     'f-appr-by','f-appr-role','f-appr-date','f-sign'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    document.getElementById('f-date').valueAsDate = new Date();
+    document.getElementById('f-to').value = 'גל - מנהל משרד טכני';
+    document.getElementById('f-from').value = 'גיא בארי - מנהל מכירות ופרויקטים';
+    document.getElementById('items-body').innerHTML = '';
+    for (let i = 0; i < 6; i++) addRow();
+    attachments.length = 0;
+    renderAttachments();
+}
+
+/* ── PDF ── */
+function buildPdfHTML() {
+    const rows = collectRows();
+    const rowsHTML = rows.map(r =>
+        `<tr>
+            <td style="text-align:center;border:1px solid #bcc;padding:5px 4px;">${r.n}</td>
+            <td style="border:1px solid #bcc;padding:5px 6px;">${r.cat}</td>
+            <td style="border:1px solid #bcc;padding:5px 6px;">${r.desc}</td>
+            <td style="text-align:center;border:1px solid #bcc;padding:5px 4px;">${r.qty}</td>
+            <td style="border:1px solid #bcc;padding:5px 6px;">${r.notes}</td>
+         </tr>`
+    ).join('');
+
+    return `
+    <div style="direction:rtl;font-family:Arial,sans-serif;font-size:13px;color:#111;background:#fff;">
+
+      <!-- Header -->
+      <div style="background:#1a3a5c;color:#fff;padding:14px 18px;text-align:center;margin-bottom:16px;">
+        <div style="font-size:1.25em;font-weight:700;">שמדר טכנולוגיות בע"מ</div>
+        <div style="font-size:0.9em;margin-top:3px;opacity:.85;">טופס הזמנת עבודה פנימית</div>
+      </div>
+
+      <!-- Meta -->
+      <table style="width:100%;margin-bottom:12px;">
+        <tr>
+          <td style="width:40%;padding:3px 6px;"><strong>אל:</strong> ${v('f-to')}</td>
+          <td style="width:35%;padding:3px 6px;"><strong>מאת:</strong> ${v('f-from')}</td>
+          <td style="width:25%;padding:3px 6px;"><strong>תאריך:</strong> ${fmtDate(v('f-date'))}</td>
+        </tr>
+      </table>
+
+      <!-- Client -->
+      <div style="background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;">פרטי לקוח ואתר</div>
+      <table style="width:100%;margin-bottom:10px;">
+        <tr>
+          <td style="width:34%;padding:3px 6px;"><strong>לקוח:</strong> ${v('f-client')}</td>
+          <td style="width:33%;padding:3px 6px;"><strong>אתר:</strong> ${v('f-site')}</td>
+          <td style="width:33%;padding:3px 6px;"><strong>איש קשר:</strong> ${v('f-contact')}</td>
+        </tr>
+        <tr>
+          <td style="padding:3px 6px;"><strong>טלפון 1:</strong> ${v('f-phone1')}</td>
+          <td style="padding:3px 6px;"><strong>טלפון 2:</strong> ${v('f-phone2')}</td>
+          <td style="padding:3px 6px;"><strong>מייל:</strong> ${v('f-cemail')}</td>
+        </tr>
+      </table>
+
+      <!-- Work -->
+      <div style="background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;">פרטי עבודה</div>
+      <table style="width:100%;margin-bottom:10px;">
+        <tr>
+          <td style="width:25%;padding:3px 6px;"><strong>מס' עבודה:</strong> ${v('f-wnum')}</td>
+          <td style="width:25%;padding:3px 6px;"><strong>מועד אספקה:</strong> ${fmtDate(v('f-delivery'))}</td>
+          <td style="width:25%;padding:3px 6px;"><strong>הזמנת לקוח:</strong> ${v('f-corder')}</td>
+          <td style="width:25%;padding:3px 6px;"><strong>מיכלול:</strong> ${v('f-michlol')}</td>
+        </tr>
+      </table>
+
+      <!-- Items -->
+      <div style="background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;">פירוט פריטים</div>
+      <table style="width:100%;margin-bottom:12px;">
+        <thead>
+          <tr style="background:#1a3a5c;color:#fff;">
+            <th style="padding:6px 4px;width:36px;border:1px solid #2a5080;text-align:center;">#</th>
+            <th style="padding:6px;width:110px;border:1px solid #2a5080;">מספר קטלוגי</th>
+            <th style="padding:6px;border:1px solid #2a5080;">תאור</th>
+            <th style="padding:6px;width:60px;border:1px solid #2a5080;text-align:center;">כמות</th>
+            <th style="padding:6px;width:160px;border:1px solid #2a5080;">הערות</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHTML}</tbody>
+      </table>
+
+      <!-- Description -->
+      <div style="background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;">תיאור העבודה</div>
+      <div style="border:1px solid #ccc;padding:10px;min-height:70px;white-space:pre-wrap;margin-bottom:14px;">${v('f-desc')}</div>
+
+      <!-- Approval -->
+      <div style="border-top:2px solid #1a3a5c;padding-top:10px;margin-top:10px;">
+        <div style="background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin-bottom:8px;color:#1a3a5c;">אישור</div>
+        <table style="width:100%;">
+          <tr>
+            <td style="width:34%;padding:4px 6px;"><strong>מאושר ע"י:</strong> ${v('f-appr-by')}</td>
+            <td style="width:33%;padding:4px 6px;"><strong>תפקיד:</strong> ${v('f-appr-role')}</td>
+            <td style="width:33%;padding:4px 6px;"><strong>תאריך:</strong> ${fmtDate(v('f-appr-date'))}</td>
+          </tr>
+          <tr>
+            <td colspan="3" style="padding:4px 6px;"><strong>חתימה:</strong> ${v('f-sign')}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Attachments: images embedded, files listed -->
+      ${(() => {
+          const imgs  = attachments.filter(a => a.isImage);
+          const files = attachments.filter(a => !a.isImage);
+          let out = '';
+          if (imgs.length) {
+              out += `<div style="background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;">תמונות מצורפות</div>
+                      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+                        ${imgs.map(a => `<img src="${a.dataUrl}" alt="${a.name}"
+                            style="max-width:340px;max-height:240px;border:1px solid #ccc;border-radius:4px;">`).join('')}
+                      </div>`;
+          }
+          if (files.length) {
+              out += `<div style="background:#fff8e1;border-right:4px solid #f5a623;padding:6px 10px;font-size:0.85em;margin-bottom:8px;color:#7a5500;">
+                        ⚠ קבצים אלה יש לצרף ידנית למייל:<br>
+                        ${files.map(f => `• ${f.name}`).join('<br>')}
+                      </div>`;
+          }
+          return out;
+      })()}
+
+      <!-- Footer -->
+      <div style="margin-top:18px;color:#999;font-size:0.75em;text-align:left;direction:ltr;">
+        טופס מס': 27/06/2011 | גרסה דיגיטלית 2025
+      </div>
+    </div>`;
+}
+
+async function downloadPDF() {
+    const zone = document.getElementById('pdf-zone');
+    zone.innerHTML = buildPdfHTML();
+    zone.style.display = 'block';
+
+    const client = v('f-client') || 'לקוח';
+    const wnum  = v('f-wnum')   || '';
+    const date  = fmtDate(v('f-date')).replace(/\//g, '-') || 'תאריך';
+    const filename = `הזמנת_עבודה_${client}_${wnum}_${date}.pdf`.replace(/\s+/g, '_');
+
+    try {
+        await html2pdf().set({
+            margin: [10, 8, 10, 8],
+            filename,
+            image:      { type: 'jpeg', quality: 0.97 },
+            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).from(zone).save();
+        toast('PDF הורד בהצלחה ✓');
+    } catch (e) {
+        toast('שגיאה ביצירת PDF');
+        console.error(e);
+    } finally {
+        zone.style.display = 'none';
+    }
+}
+
+/* ── Email ── */
+function buildEmailBody() {
+    const rows = collectRows().filter(r => r.cat || r.desc || r.qty);
+    const rowLines = rows.map(r =>
+        `${r.n}. ${r.desc}${r.cat ? ' | מק"ט: ' + r.cat : ''}${r.qty ? ' | כמות: ' + r.qty : ''}${r.notes ? ' | ' + r.notes : ''}`
+    ).join('\n');
+
+    return `שלום גל,
+
+מצורפת הזמנת עבודה פנימית לביצוע. אנא ראה PDF מצורף לטופס המלא.
+
+━━━━━━━━━━━━━━━━━━━
+לקוח:        ${v('f-client')}
+אתר:          ${v('f-site')}
+איש קשר:     ${v('f-contact')}  ${v('f-phone1')}${v('f-phone2') ? ' / ' + v('f-phone2') : ''}
+━━━━━━━━━━━━━━━━━━━
+מספר עבודה:  ${v('f-wnum')}
+מועד אספקה:  ${fmtDate(v('f-delivery'))}
+הזמנת לקוח:  ${v('f-corder')}
+מיכלול:       ${v('f-michlol')}
+━━━━━━━━━━━━━━━━━━━
+${rowLines ? 'פירוט פריטים:\n' + rowLines + '\n━━━━━━━━━━━━━━━━━━━\n' : ''}
+תיאור העבודה:
+${v('f-desc')}
+━━━━━━━━━━━━━━━━━━━
+
+⚠ יש לצרף את קובץ ה-PDF שהורד${attachments.filter(a=>!a.isImage).length ? '\n\nקבצים לצירוף ידני:\n' + attachments.filter(a=>!a.isImage).map(f=>'• '+f.name).join('\n') : ''}${attachments.filter(a=>a.isImage).length ? '\n\n(תמונות מוטמעות בתוך ה-PDF)' : ''}
+
+בברכה,
+${v('f-from')}`;
+}
+
+async function sendEmail() {
+    await downloadPDF();
+
+    const subject = encodeURIComponent(
+        `הזמנת עבודה – ${v('f-client')} – מס' ${v('f-wnum')} – ${fmtDate(v('f-date'))}`
+    );
+    const body = encodeURIComponent(buildEmailBody());
+
+    window.location.href = `mailto:gal@smdrtech.co.il?subject=${subject}&body=${body}`;
+    setTimeout(() => toast('Outlook נפתח – אל תשכח לצרף את ה-PDF! 📎'), 600);
+}
+</script>
+
+</body>
+</html>

@@ -616,18 +616,20 @@ function buildPdfHTML() {
     const rows    = collectRows();
     const sigData = getSignatureDataUrl();
 
-    // &#160; = non-breaking space — html2canvas cannot collapse it
-    const S = '&#160;';
-    const secStyle = 'background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;';
-    const tdStyle  = 'padding:4px 6px;vertical-align:top;';
+    //   = non-breaking space character — html2canvas cannot collapse it
+    const S   = ' ';
+    // sp() replaces every regular space in dynamic values with NBSP
+    const sp  = s => (s || '').replace(/ /g, ' ');
+    const secStyle = 'background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;direction:rtl;';
+    const tdStyle  = 'padding:4px 6px;vertical-align:top;direction:rtl;';
     const lbl = text => `<b>${text}:</b>${S}`;
 
     const rowsHTML = rows.map(r =>
         `<tr>
             <td style="text-align:center;border:1px solid #bcc;padding:8px 4px;">${r.n}</td>
-            <td style="border:1px solid #bcc;padding:8px 6px;">${r.desc}</td>
+            <td style="border:1px solid #bcc;padding:8px 6px;">${sp(r.desc)}</td>
             <td style="text-align:center;border:1px solid #bcc;padding:8px 4px;">${r.qty}</td>
-            <td style="border:1px solid #bcc;padding:8px 6px;">${r.notes}</td>
+            <td style="border:1px solid #bcc;padding:8px 6px;">${sp(r.notes)}</td>
          </tr>`
     ).join('');
 
@@ -647,8 +649,8 @@ function buildPdfHTML() {
       <!-- Meta -->
       <table style="width:100%;margin-bottom:12px;border-collapse:collapse;">
         <tr>
-          <td style="width:40%;${tdStyle}">${lbl('אל')}${v('f-to')}</td>
-          <td style="width:35%;${tdStyle}">${lbl('מאת')}${v('f-from')}</td>
+          <td style="width:40%;${tdStyle}">${lbl('אל')}${sp(v('f-to'))}</td>
+          <td style="width:35%;${tdStyle}">${lbl('מאת')}${sp(v('f-from'))}</td>
           <td style="width:25%;${tdStyle}">${lbl('תאריך')}${fmtDate(v('f-date'))}</td>
         </tr>
       </table>
@@ -657,13 +659,13 @@ function buildPdfHTML() {
       <div style="${secStyle}">פרטי${S}לקוח${S}ואתר</div>
       <table style="width:100%;margin-bottom:10px;border-collapse:collapse;">
         <tr>
-          <td style="width:34%;${tdStyle}">${lbl('לקוח')}${v('f-client')}</td>
-          <td style="width:33%;${tdStyle}">${lbl('אתר')}${v('f-site')}</td>
-          <td style="width:33%;${tdStyle}">${lbl('איש&#160;קשר')}${v('f-contact')}</td>
+          <td style="width:34%;${tdStyle}">${lbl('לקוח')}${sp(v('f-client'))}</td>
+          <td style="width:33%;${tdStyle}">${lbl('אתר')}${sp(v('f-site'))}</td>
+          <td style="width:33%;${tdStyle}">${lbl('איש קשר')}${sp(v('f-contact'))}</td>
         </tr>
         <tr>
-          <td style="${tdStyle}">${lbl('טלפון&#160;1')}${v('f-phone1')}</td>
-          <td style="${tdStyle}">${lbl('טלפון&#160;2')}${v('f-phone2')}</td>
+          <td style="${tdStyle}">${lbl('טלפון 1')}${v('f-phone1')}</td>
+          <td style="${tdStyle}">${lbl('טלפון 2')}${v('f-phone2')}</td>
           <td style="${tdStyle}">${lbl('מייל')}${v('f-cemail')}</td>
         </tr>
       </table>
@@ -672,9 +674,9 @@ function buildPdfHTML() {
       <div style="${secStyle}">פרטי${S}עבודה</div>
       <table style="width:100%;margin-bottom:10px;border-collapse:collapse;">
         <tr>
-          <td style="width:33%;${tdStyle}">${lbl("מס'&#160;עבודה")}${v('f-wnum')}</td>
-          <td style="width:34%;${tdStyle}">${lbl('מועד&#160;אספקה')}${fmtDate(v('f-delivery'))}</td>
-          <td style="width:33%;${tdStyle}">${lbl('הזמנת&#160;לקוח')}${v('f-corder')}</td>
+          <td style="width:33%;${tdStyle}">${lbl("מס' עבודה")}${v('f-wnum')}</td>
+          <td style="width:34%;${tdStyle}">${lbl('מועד אספקה')}${fmtDate(v('f-delivery'))}</td>
+          <td style="width:33%;${tdStyle}">${lbl('הזמנת לקוח')}${sp(v('f-corder'))}</td>
         </tr>
       </table>
 
@@ -694,15 +696,15 @@ function buildPdfHTML() {
 
       <!-- Description -->
       <div style="${secStyle}">תיאור${S}העבודה</div>
-      <div style="border:1px solid #ccc;padding:10px;min-height:70px;white-space:pre-wrap;margin-bottom:14px;">${v('f-desc')}</div>
+      <div style="border:1px solid #ccc;padding:10px;min-height:70px;white-space:pre-wrap;word-break:break-word;margin-bottom:14px;">${sp(v('f-desc'))}</div>
 
       <!-- Approval (no date) -->
       <div style="border-top:2px solid #1a3a5c;padding-top:10px;margin-top:10px;">
         <div style="${secStyle}">אישור</div>
         <table style="width:100%;border-collapse:collapse;">
           <tr>
-            <td style="width:50%;${tdStyle}">${lbl('מאושר&#160;ע&quot;י')}${v('f-appr-by')}</td>
-            <td style="width:50%;${tdStyle}">${lbl('תפקיד')}${v('f-appr-role')}</td>
+            <td style="width:50%;${tdStyle}">${lbl('מאושר ע"י')}${sp(v('f-appr-by'))}</td>
+            <td style="width:50%;${tdStyle}">${lbl('תפקיד')}${sp(v('f-appr-role'))}</td>
           </tr>
           <tr>
             <td colspan="2" style="${tdStyle}">
@@ -752,7 +754,7 @@ async function downloadPDF() {
                 margin:      [10, 8, 10, 8],
                 filename,
                 image:       { type: 'jpeg', quality: 0.97 },
-                html2canvas: { scale: 2, useCORS: true, letterRendering: true, logging: false, allowTaint: true },
+                html2canvas: { scale: 2, useCORS: true, letterRendering: false, logging: false, allowTaint: true },
                 jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
             })
             .from(buildPdfHTML())

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head>
     <meta charset="UTF-8">
@@ -789,23 +789,9 @@ function buildEmailBody() {
         `${c.name}${c.phone ? '  ' + c.phone : ''}${c.email ? '  ' + c.email : ''}`
     ).join('\n             ');
 
-    return `‏שלום גל,
+    return `שלום גל,
 
 מצורפת הזמנת עבודה פנימית לביצוע. אנא ראה PDF מצורף.
-
-━━━━━━━━━━━━━━━━━━━
-לקוח:        ${v('f-client')}
-אתר:          ${v('f-site')}
-${cts.length ? 'אנשי קשר:    ' + ctLines : ''}
-━━━━━━━━━━━━━━━━━━━
-מספר עבודה:  ${wnum()}
-מועד אספקה:  ${fmtDate(v('f-delivery'))}
-הזמנת לקוח:  ${v('f-corder')}
-━━━━━━━━━━━━━━━━━━━
-${rowLines ? 'פירוט פריטים:\n' + rowLines + '\n━━━━━━━━━━━━━━━━━━━\n' : ''}
-תיאור העבודה:
-${v('f-desc')}
-━━━━━━━━━━━━━━━━━━━
 
 בברכה,
 ${v('f-from')}`;

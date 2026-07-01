@@ -14,7 +14,7 @@
 
         /* ── Toolbar ── */
         .toolbar {
-            background: #1a3a5c;
+            background: #bc2129;
             color: #fff;
             padding: 10px 18px;
             position: sticky;
@@ -42,7 +42,7 @@
 
         /* ── Form header ── */
         .form-header {
-            background: #1a3a5c;
+            background: #bc2129;
             color: #fff;
             padding: 18px 24px;
             text-align: center;
@@ -52,12 +52,12 @@
 
         /* ── Section label ── */
         .sec-label {
-            background: #e6edf5;
-            border-right: 4px solid #1a3a5c;
+            background: #fbe4e4;
+            border-right: 4px solid #bc2129;
             padding: 5px 12px;
             font-weight: 700;
             font-size: 0.9rem;
-            color: #1a3a5c;
+            color: #bc2129;
             margin: 18px 0 10px;
             border-radius: 0 4px 4px 0;
         }
@@ -65,11 +65,11 @@
         .form-label { font-weight: 600; font-size: 0.88rem; color: #333; margin-bottom: 3px; }
         .form-control, .form-select {
             font-size: 0.9rem;
-            border-color: #cfd8e3;
+            border-color: #e3cfcf;
         }
         .form-control:focus {
-            border-color: #1a3a5c;
-            box-shadow: 0 0 0 .18rem rgba(26,58,92,.22);
+            border-color: #bc2129;
+            box-shadow: 0 0 0 .18rem rgba(188,33,41,.22);
         }
         .form-control[readonly] {
             background: #f4f7fb;
@@ -79,14 +79,14 @@
         /* ── Items table ── */
         #items-table { width: 100%; border-collapse: collapse; }
         #items-table th {
-            background: #1a3a5c;
+            background: #bc2129;
             color: #fff;
             padding: 7px 6px;
             font-size: 0.82rem;
             text-align: center;
-            border: 1px solid #2a5080;
+            border: 1px solid #d6343e;
         }
-        #items-table td { border: 1px solid #d0d8e4; padding: 6px 3px; }
+        #items-table td { border: 1px solid #e4d0d0; padding: 6px 3px; }
         #items-table td input {
             border: none;
             width: 100%;
@@ -95,16 +95,16 @@
             background: transparent;
             outline: none;
         }
-        #items-table td input:focus { background: #f0f6ff; }
+        #items-table td input:focus { background: #fff0f0; }
         .row-num { text-align: center; background: #f4f7fb; color: #888; font-size: 0.8rem; width: 36px; }
         #items-table tr:nth-child(even) td { background: #fafbfd; }
 
         /* ── Approval ── */
-        .approval-wrap { border-top: 2px solid #1a3a5c; margin-top: 26px; padding-top: 4px; }
+        .approval-wrap { border-top: 2px solid #bc2129; margin-top: 26px; padding-top: 4px; }
 
         /* ── Signature canvas ── */
         .sig-wrap {
-            border: 2px solid #cfd8e3;
+            border: 2px solid #e3cfcf;
             border-radius: 6px;
             background: #fff;
             position: relative;
@@ -137,7 +137,7 @@
         .ac-box {
             position: absolute;
             background: #fff;
-            border: 1px solid #b0c4d8;
+            border: 1px solid #d8b0b0;
             border-radius: 6px;
             box-shadow: 0 4px 16px rgba(0,0,0,.15);
             z-index: 300;
@@ -154,10 +154,10 @@
             font-size: 0.87rem;
             border-bottom: 1px solid #f0f0f0;
         }
-        .ac-item:hover, .ac-item.ac-active { background: #e8f0f8; }
+        .ac-item:hover, .ac-item.ac-active { background: #fbe9e9; }
 
         /* ── Contact rows ── */
-        .contact-row { background: #f8fafc; border-radius: 7px; padding: 8px 10px; margin-bottom: 6px; border: 1px solid #dce8f0; }
+        .contact-row { background: #f8fafc; border-radius: 7px; padding: 8px 10px; margin-bottom: 6px; border: 1px solid #f0dcdc; }
 
         /* ── Footer note ── */
         .form-footer { font-size: 0.72rem; color: #aaa; margin-top: 18px; text-align: left; direction: ltr; }
@@ -168,7 +168,7 @@
             bottom: 24px;
             left: 50%;
             transform: translateX(-50%);
-            background: #1a3a5c;
+            background: #bc2129;
             color: #fff;
             padding: 10px 24px;
             border-radius: 24px;
@@ -400,7 +400,7 @@ for (let i = 0; i < 6; i++) addRow();
         ctx.beginPath();
         ctx.moveTo(lastX, lastY);
         ctx.lineTo(x, y);
-        ctx.strokeStyle = '#1a3a5c';
+        ctx.strokeStyle = '#bc2129';
         ctx.lineWidth   = 2.8;
         ctx.lineCap     = 'round';
         ctx.lineJoin    = 'round';
@@ -692,16 +692,16 @@ function buildPdfHTML() {
     const S   = ' ';
     // sp() replaces every regular space in dynamic values with NBSP
     const sp  = s => (s || '').replace(/ /g, ' ');
-    const secStyle = 'background:#e6edf5;border-right:4px solid #1a3a5c;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#1a3a5c;direction:rtl;';
+    const secStyle = 'background:#fbe4e4;border-right:4px solid #bc2129;padding:4px 10px;font-weight:700;margin:10px 0 6px;color:#bc2129;direction:rtl;';
     const tdStyle  = 'padding:4px 6px;vertical-align:top;direction:rtl;';
     const lbl = text => `<b>${text}:</b>${S}`;
 
     const rowsHTML = rows.map(r =>
         `<tr>
-            <td style="text-align:center;border:1px solid #bcc;padding:8px 4px;">${r.n}</td>
-            <td style="border:1px solid #bcc;padding:8px 6px;">${sp(r.desc)}</td>
-            <td style="text-align:center;border:1px solid #bcc;padding:8px 4px;">${r.qty}</td>
-            <td style="border:1px solid #bcc;padding:8px 6px;">${sp(r.notes)}</td>
+            <td style="text-align:center;border:1px solid #cbb;padding:8px 4px;">${r.n}</td>
+            <td style="border:1px solid #cbb;padding:8px 6px;">${sp(r.desc)}</td>
+            <td style="text-align:center;border:1px solid #cbb;padding:8px 4px;">${r.qty}</td>
+            <td style="border:1px solid #cbb;padding:8px 6px;">${sp(r.notes)}</td>
          </tr>`
     ).join('');
 
@@ -713,7 +713,7 @@ function buildPdfHTML() {
     <div style="direction:rtl;font-family:Arial,sans-serif;font-size:13px;color:#111;background:#fff;">
 
       <!-- Header -->
-      <div style="background:#1a3a5c;color:#fff;padding:14px 18px;text-align:center;margin-bottom:16px;">
+      <div style="background:#bc2129;color:#fff;padding:14px 18px;text-align:center;margin-bottom:16px;">
         <div style="font-size:1.25em;font-weight:700;">שמדר${S}טכנולוגיות${S}בע"מ</div>
         <div style="font-size:0.9em;margin-top:3px;opacity:.85;">טופס${S}הזמנת${S}עבודה${S}פנימית</div>
       </div>
@@ -739,7 +739,7 @@ function buildPdfHTML() {
         const cts = collectContacts().filter(c => c.name);
         if (!cts.length) return '';
         return '<table style="width:100%;margin-bottom:10px;border-collapse:collapse;font-size:0.92em;">' +
-          '<thead><tr style="background:#e6edf5;">' +
+          '<thead><tr style="background:#fbe4e4;">' +
           '<th style="' + tdStyle + ';width:38%;">איש קשר</th>' +
           '<th style="' + tdStyle + ';width:30%;">טלפון</th>' +
           '<th style="' + tdStyle + ';width:32%;">מייל</th>' +
@@ -766,11 +766,11 @@ function buildPdfHTML() {
       <div style="${secStyle}">פירוט${S}פריטים</div>
       <table style="width:100%;margin-bottom:12px;border-collapse:collapse;">
         <thead>
-          <tr style="background:#1a3a5c;color:#fff;">
-            <th style="padding:6px 4px;width:36px;border:1px solid #2a5080;text-align:center;">#</th>
-            <th style="padding:6px;border:1px solid #2a5080;">תאור</th>
-            <th style="padding:6px;width:60px;border:1px solid #2a5080;text-align:center;">כמות</th>
-            <th style="padding:6px;width:180px;border:1px solid #2a5080;">הערות</th>
+          <tr style="background:#bc2129;color:#fff;">
+            <th style="padding:6px 4px;width:36px;border:1px solid #d6343e;text-align:center;">#</th>
+            <th style="padding:6px;border:1px solid #d6343e;">תאור</th>
+            <th style="padding:6px;width:60px;border:1px solid #d6343e;text-align:center;">כמות</th>
+            <th style="padding:6px;width:180px;border:1px solid #d6343e;">הערות</th>
           </tr>
         </thead>
         <tbody>${rowsHTML}</tbody>
@@ -781,7 +781,7 @@ function buildPdfHTML() {
       <div style="border:1px solid #ccc;padding:10px;min-height:70px;white-space:pre-wrap;word-break:break-word;margin-bottom:14px;">${sp(v('f-desc'))}</div>
 
       <!-- Approval (no date) -->
-      <div style="border-top:2px solid #1a3a5c;padding-top:10px;margin-top:10px;">
+      <div style="border-top:2px solid #bc2129;padding-top:10px;margin-top:10px;">
         <div style="${secStyle}">אישור</div>
         <table style="width:100%;border-collapse:collapse;">
           <tr>

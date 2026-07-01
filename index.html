@@ -463,6 +463,7 @@ function renderContacts() {
 
 function addContact() {
     if (formContacts.length >= 5) return;
+    syncContactsFromDOM();
     formContacts.push({ name:'', phone:'', email:'' });
     renderContacts();
 }

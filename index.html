@@ -232,6 +232,7 @@
     <span class="toolbar-title">📋 טופס הזמנת עבודה פנימית</span>
     <div class="d-flex gap-2 flex-wrap">
         <button class="btn btn-outline-light" onclick="newForm()">טופס חדש</button>
+        <button class="btn btn-outline-light" onclick="duplicateForm()" title="פתח עותק של הטופס עם כל הנתונים שמולאו, בכרטיסייה חדשה">📄 צור עותק</button>
         <button class="btn btn-outline-light" onclick="copyLink()" id="btn-share" title="העתק קישור לטופס לשיתוף עם עובדים">🔗 שתף קישור</button>
         <button class="btn btn-warning text-dark fw-bold" onclick="downloadPDF()">⬇ PDF</button>
         <button class="btn btn-success fw-bold" onclick="sendEmail()">✉ שלח במייל</button>
@@ -556,6 +557,59 @@ document.addEventListener('click', e => {
     }
 });
 
+/* ── Duplicate form ── */
+const DUPLICATE_KEY = 'wo_duplicate';
+
+function duplicateForm() {
+    const data = {
+        to: v('f-to'), from: v('f-from'), date: v('f-date'),
+        client: v('f-client'), site: v('f-site'),
+        contacts: collectContacts(),
+        wnum: v('f-wnum'), delivery: v('f-delivery'), corder: v('f-corder'),
+        rows: collectRows(),
+        desc: v('f-desc')
+    };
+    localStorage.setItem(DUPLICATE_KEY, JSON.stringify(data));
+    window.open(window.location.href.split('?')[0], '_blank');
+    toast('עותק נפתח בכרטיסייה חדשה ✓');
+}
+
+function applyDuplicateIfAny() {
+    const raw = localStorage.getItem(DUPLICATE_KEY);
+    if (!raw) return;
+    localStorage.removeItem(DUPLICATE_KEY);
+
+    let data;
+    try { data = JSON.parse(raw); } catch { return; }
+
+    document.getElementById('f-to').value     = data.to || '';
+    document.getElementById('f-from').value   = data.from || '';
+    if (data.date) document.getElementById('f-date').value = data.date;
+    document.getElementById('f-client').value = data.client || '';
+    document.getElementById('f-site').value   = data.site || '';
+    document.getElementById('f-wnum').value   = data.wnum || '';
+    if (data.delivery) document.getElementById('f-delivery').value = data.delivery;
+    document.getElementById('f-corder').value = data.corder || '';
+    document.getElementById('f-desc').value   = data.desc || '';
+
+    formContacts = (data.contacts && data.contacts.length) ? data.contacts : [{ name:'', phone:'', email:'' }];
+    renderContacts();
+
+    document.getElementById('items-body').innerHTML = '';
+    const rows = data.rows || [];
+    if (rows.length) {
+        rows.forEach(() => addRow());
+        [...document.querySelectorAll('#items-body tr')].forEach((tr, i) => {
+            const inputs = tr.querySelectorAll('input');
+            inputs[0].value = rows[i].desc  || '';
+            inputs[1].value = rows[i].qty   || '';
+            inputs[2].value = rows[i].notes || '';
+        });
+    } else {
+        for (let i = 0; i < 6; i++) addRow();
+    }
+}
+
 /* ── Share link ── */
 function copyLink() {
     const url = window.location.href.split('?')[0];
@@ -805,6 +859,8 @@ function sendEmail() {
     const body = encodeURIComponent(buildEmailBody());
     window.location.href = `mailto:gal@smdrtech.co.il?subject=${subject}&body=${body}`;
 }
+
+applyDuplicateIfAny();
 </script>
 
 </body>

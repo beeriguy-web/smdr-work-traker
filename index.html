@@ -266,7 +266,7 @@
         </div>
 
         <!-- Client -->
-        <div class="sec-label">פרטי לקוח ואתר</div>
+        <div class="sec-label">פרטי לקוח ופרויקט</div>
         <div class="row g-3">
             <div class="col-md-6 ac-wrap">
                 <label class="form-label">שם לקוח:</label>
@@ -275,8 +275,8 @@
                 <div class="ac-box" id="client-ac"></div>
             </div>
             <div class="col-md-6">
-                <label class="form-label">אתר:</label>
-                <input class="form-control" id="f-site" placeholder="שם / כתובת האתר">
+                <label class="form-label">פרויקט:</label>
+                <input class="form-control" id="f-site" placeholder="שם / כתובת הפרויקט">
             </div>
         </div>
 
@@ -728,11 +728,11 @@ function buildPdfHTML() {
       </table>
 
       <!-- Client -->
-      <div style="${secStyle}">פרטי${S}לקוח${S}ואתר</div>
+      <div style="${secStyle}">פרטי${S}לקוח${S}ופרויקט</div>
       <table style="width:100%;margin-bottom:4px;border-collapse:collapse;">
         <tr>
           <td style="width:50%;${tdStyle}">${lbl('לקוח')}${sp(v('f-client'))}</td>
-          <td style="width:50%;${tdStyle}">${lbl('אתר')}${sp(v('f-site'))}</td>
+          <td style="width:50%;${tdStyle}">${lbl('פרויקט')}${sp(v('f-site'))}</td>
         </tr>
       </table>
       ${(() => {
@@ -854,7 +854,7 @@ ${v('f-from')}`;
 
 function sendEmail() {
     const subject = encodeURIComponent(
-        `הזמנת עבודה – ${v('f-client')} – ${v('f-site') || 'ללא אתר'} – ${v('f-wnum') ? 'PR' + v('f-wnum') : ''}`
+        `הזמנת עבודה – ${v('f-client')} – ${v('f-site') || 'ללא פרויקט'} – ${v('f-wnum') ? 'PR' + v('f-wnum') : ''}`
     );
     const body = encodeURIComponent(buildEmailBody());
     window.location.href = `mailto:gal@smdrtech.co.il?subject=${subject}&body=${body}`;

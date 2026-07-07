@@ -313,7 +313,7 @@
         <div class="row g-3 mb-1">
             <div class="col-md-5">
                 <label class="form-label">אל:</label>
-                <input class="form-control" id="f-to" value="גל - מנהל משרד טכני">
+                <input class="form-control" id="f-to" value="גל בניטה - מנהל משרד טכני">
             </div>
             <div class="col-md-4">
                 <label class="form-label">מאת:</label>
@@ -768,7 +768,7 @@ function removeRow() {
 
 /* ── Helpers ── */
 function v(id) { return (document.getElementById(id)?.value || '').trim(); }
-function wnum() { const n = v('f-wnum'); return n ? `PR${n}/@...` : ''; }
+function wnum() { const n = v('f-wnum'); return n ? `(PR${n}/@...)` : ''; }
 
 function fmtDate(iso) {
     if (!iso) return '';
@@ -800,7 +800,7 @@ function newForm() {
     formContacts = [{ name:'', phone:'', email:'' }];
     renderContacts();
     document.getElementById('f-date').valueAsDate  = new Date();
-    document.getElementById('f-to').value          = 'גל - מנהל משרד טכני';
+    document.getElementById('f-to').value          = 'גל בניטה - מנהל משרד טכני';
     document.getElementById('f-from').value        = 'גיא בארי - מנהל מכירות ופרויקטים';
     document.getElementById('f-appr-by').value     = 'גיא בארי';
     document.getElementById('items-body').innerHTML = '';
@@ -854,7 +854,7 @@ function renderJobLog() {
                 <td>${fmtDate(r.date) || '—'}</td>
                 <td>${r.client || '—'}</td>
                 <td>${r.project || '—'}</td>
-                <td>${r.wnum || '—'}</td>
+                <td><span style="direction:ltr;unicode-bidi:isolate;">${r.wnum || '—'}</span></td>
                 <td>${r.corder || '—'}</td>
             </tr>`
           ).join('')
@@ -953,7 +953,7 @@ function buildPdfHTML() {
           '<thead><tr style="background:#fbe4e4;">' +
           '<th style="' + tdStyle + ';width:38%;">איש קשר</th>' +
           '<th style="' + tdStyle + ';width:30%;">טלפון</th>' +
-          '<th style="' + tdStyle + ';width:32%;">מייל</th>' +
+          '<th style="' + tdStyle + ';width:32%;">מייל לאישור פרטים</th>' +
           '</tr></thead><tbody>' +
           cts.map(c =>
             '<tr><td style="' + tdStyle + '">' + sp(c.name) + '</td>' +
@@ -967,7 +967,7 @@ function buildPdfHTML() {
       <div style="${secStyle}">פרטי${S}עבודה</div>
       <table style="width:100%;margin-bottom:10px;border-collapse:collapse;">
         <tr>
-          <td style="width:33%;${tdStyle}">${lbl("מס' עבודה")}${wnum()}</td>
+          <td style="width:33%;${tdStyle}">${lbl("מס' עבודה")}<span style="direction:ltr;unicode-bidi:isolate;">${wnum()}</span></td>
           <td style="width:34%;${tdStyle}">${lbl('מועד אספקה')}${fmtDate(v('f-delivery'))}</td>
           <td style="width:33%;${tdStyle}">${lbl('הזמנת לקוח')}${sp(v('f-corder'))}</td>
         </tr>

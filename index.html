@@ -768,7 +768,7 @@ function removeRow() {
 
 /* ── Helpers ── */
 function v(id) { return (document.getElementById(id)?.value || '').trim(); }
-function wnum() { const n = v('f-wnum'); return n ? `(PR${n}/@...)` : ''; }
+function wnum() { const n = v('f-wnum'); return n ? `PR${n}/@...` : ''; }
 
 function fmtDate(iso) {
     if (!iso) return '';

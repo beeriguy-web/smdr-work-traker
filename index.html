@@ -1014,6 +1014,14 @@ function buildPdfHTML() {
     </div>`;
 }
 
+function pdfFileName() {
+    const rows = collectRows();
+    const raw = (rows[0] && rows[0].desc) || v('f-client') || 'טופס הזמנת עבודה';
+    const safe = raw.replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+    return (safe || 'טופס הזמנת עבודה')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function downloadPDF() {
     logJob();
     saveNewContactsFromForm();
@@ -1023,6 +1031,7 @@ function downloadPDF() {
 <html dir="rtl" lang="he">
 <head>
 <meta charset="UTF-8">
+<title>${pdfFileName()}</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap" rel="stylesheet">
 <style>
   * {

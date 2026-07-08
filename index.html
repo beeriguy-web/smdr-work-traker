@@ -552,7 +552,9 @@ function saveNewContact(company, name, phone, email) {
   fetch(SHEETS_API, {
     method: 'POST',
     body: JSON.stringify({ company, name, phone, email })
-  }).catch(() => {});
+  })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); })
+    .catch(() => { toast('⚠ שמירת "' + name + '" למאגר נכשלה — בדוק את הגיליון'); });
   if (!CONTACTS_DB[company]) CONTACTS_DB[company] = [];
   CONTACTS_DB[company].push({ n: name, p: phone, e: email });
 }

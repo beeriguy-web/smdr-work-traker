@@ -182,58 +182,6 @@
         }
         .toast-msg.show { opacity: 1; }
 
-        /* ── Job log ── */
-        .joblog-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,.45);
-            z-index: 500;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-        .joblog-card {
-            background: #fff;
-            border-radius: 10px;
-            max-width: 760px;
-            width: 100%;
-            max-height: 80vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 8px 30px rgba(0,0,0,.3);
-        }
-        .joblog-header {
-            background: #bc2129;
-            color: #fff;
-            padding: 12px 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 700;
-        }
-        .joblog-close { background: none; border: none; color: #fff; font-size: 1.1rem; cursor: pointer; }
-        .joblog-body-wrap { overflow-y: auto; padding: 10px 14px; }
-        .joblog-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
-        .joblog-table th {
-            background: #fbe4e4;
-            color: #bc2129;
-            padding: 6px 8px;
-            text-align: right;
-            border: 1px solid #c9a3a3;
-            position: sticky;
-            top: 0;
-        }
-        .joblog-table td { padding: 6px 8px; border: 1px solid #c9a3a3; text-align: right; }
-        .joblog-actions {
-            padding: 10px 14px;
-            border-top: 1px solid #c9a3a3;
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
         @media (max-width: 600px) {
             .toolbar-title { font-size: 0.9rem; }
             .form-card { margin: 10px 6px 50px; border-radius: 8px; }
@@ -251,7 +199,6 @@
             .sig-clear-btn,
             .sig-hint,
             .toast-msg,
-            .joblog-overlay,
             #pdf-zone { display: none !important; }
 
             body { background: #fff !important; font-size: 11pt; margin: 0; }
@@ -288,7 +235,7 @@
     <div class="d-flex gap-2 flex-wrap">
         <button class="btn btn-outline-light" onclick="newForm()">טופס חדש</button>
         <button class="btn btn-outline-light" onclick="copyLink()" id="btn-share" title="העתק קישור לטופס לשיתוף עם עובדים">🔗 שתף קישור</button>
-        <button class="btn btn-outline-light" onclick="openJobLog()" title="רשימת העבודות ששמרת כ-PDF, ממוינת לפי תאריך">📊 יומן עבודות</button>
+        <button class="btn btn-outline-light" onclick="window.open('https://beeriguy-web.github.io/work-traker/', '_blank')" title="פתח את מעקב העבודות במשרד הטכני">📊 מעקב עבודות</button>
         <button class="btn btn-warning text-dark fw-bold" onclick="downloadPDF()">⬇ PDF</button>
         <button class="btn btn-success fw-bold" onclick="sendEmail()">✉ שלח במייל</button>
     </div>
@@ -369,6 +316,12 @@
                 <input class="form-control" id="f-corder" placeholder="מספר / הפניה">
             </div>
         </div>
+        <div class="row g-3 mt-1">
+            <div class="col-12">
+                <label class="form-label">שם העבודה (משמש לשם קובץ ה-PDF ולמעקב עבודות):</label>
+                <textarea class="form-control" id="f-jobname" rows="2" placeholder="לדוגמה: התקנת מעקות זכוכית - קומה 3"></textarea>
+            </div>
+        </div>
 
         <!-- Items table (removed מספר קטלוגי column) -->
         <div class="sec-label">פירוט פריטים</div>
@@ -423,28 +376,6 @@
 
 <!-- ════ TOAST ════ -->
 <div class="toast-msg" id="toast"></div>
-
-<!-- ════ JOB LOG ════ -->
-<div class="joblog-overlay" id="joblog-overlay">
-    <div class="joblog-card">
-        <div class="joblog-header">
-            <span>יומן עבודות שנשמרו</span>
-            <button type="button" class="joblog-close" onclick="closeJobLog()">✕</button>
-        </div>
-        <div class="joblog-body-wrap">
-            <table class="joblog-table">
-                <thead>
-                    <tr><th>תאריך</th><th>לקוח</th><th>פרויקט</th><th>מס' עבודה</th><th>הזמנת לקוח</th></tr>
-                </thead>
-                <tbody id="joblog-body"></tbody>
-            </table>
-        </div>
-        <div class="joblog-actions">
-            <button class="btn btn-sm btn-outline-danger" onclick="clearJobLog()">🗑 נקה יומן</button>
-            <button class="btn btn-sm btn-warning text-dark fw-bold" onclick="exportJobLogCSV()">⬇ ייצוא לאקסל (CSV)</button>
-        </div>
-    </div>
-</div>
 
 <!-- ════ PDF ZONE (off-screen, always in DOM) ════ -->
 <div id="pdf-zone"></div>
@@ -796,7 +727,7 @@ function collectRows() {
 
 function newForm() {
     if (!confirm('לאפס את הטופס ולהתחיל מחדש?')) return;
-    ['f-client','f-site','f-wnum','f-delivery','f-corder','f-desc'].forEach(id => {
+    ['f-client','f-site','f-wnum','f-delivery','f-corder','f-jobname','f-desc'].forEach(id => {
         document.getElementById(id).value = '';
     });
     formContacts = [{ name:'', phone:'', email:'' }];
@@ -810,85 +741,38 @@ function newForm() {
     drawDefaultSignature();
 }
 
-/* ── Job log (local history of PDF exports) ── */
-const JOB_LOG_KEY = 'wo_job_log';
-
-function getJobLog() {
-    try { return JSON.parse(localStorage.getItem(JOB_LOG_KEY)) || []; }
-    catch { return []; }
+/* ── Job name (shared with pdfFileName() and מעקב עבודות) ── */
+function jobName() {
+    const rows = collectRows();
+    return v('f-jobname') || (rows[0] && rows[0].desc) || v('f-client') || 'טופס הזמנת עבודה';
 }
 
-function logJob() {
-    const key = v('f-wnum');
-    const entry = {
-        date: v('f-date'),
-        client: v('f-client'),
-        project: v('f-site'),
-        wnum: wnum(),
-        corder: v('f-corder'),
-        wnumKey: key
-    };
-    const log = getJobLog();
-    const idx = key ? log.findIndex(r => r.wnumKey === key) : -1;
-    if (idx >= 0) log[idx] = entry;
-    else log.push(entry);
-    localStorage.setItem(JOB_LOG_KEY, JSON.stringify(log));
-}
-
-function sortedJobLog() {
-    return getJobLog().slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-}
-
-function openJobLog() {
-    renderJobLog();
-    document.getElementById('joblog-overlay').style.display = 'flex';
-}
-
-function closeJobLog() {
-    document.getElementById('joblog-overlay').style.display = 'none';
-}
-
-function renderJobLog() {
-    const rows = sortedJobLog();
-    document.getElementById('joblog-body').innerHTML = rows.length
-        ? rows.map(r =>
-            `<tr>
-                <td>${fmtDate(r.date) || '—'}</td>
-                <td>${r.client || '—'}</td>
-                <td>${r.project || '—'}</td>
-                <td><span style="direction:ltr;unicode-bidi:isolate;">${r.wnum || '—'}</span></td>
-                <td>${r.corder || '—'}</td>
-            </tr>`
-          ).join('')
-        : '<tr><td colspan="5" style="text-align:center;color:#999;padding:16px;">היומן ריק — עדיין לא נשמרו עבודות</td></tr>';
-}
-
-function clearJobLog() {
-    if (!confirm('למחוק את כל יומן העבודות? פעולה זו לא ניתנת לביטול.')) return;
-    localStorage.removeItem(JOB_LOG_KEY);
-    renderJobLog();
-}
-
-function csvEscape(val) {
-    const s = (val || '').toString();
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-}
-
-function exportJobLogCSV() {
-    const rows = sortedJobLog();
-    if (!rows.length) { toast('היומן ריק — אין מה לייצא'); return; }
-    const header = ['תאריך', 'לקוח', 'פרויקט', "מס' עבודה", 'הזמנת לקוח'];
-    const lines = [header.join(',')].concat(
-        rows.map(r => [fmtDate(r.date), r.client, r.project, r.wnum, r.corder].map(csvEscape).join(','))
-    );
-    const csv = String.fromCharCode(0xFEFF) + lines.join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'יומן-עבודות.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast('הקובץ הורד — פתח עם Excel ✓');
+/* ── Push to מעקב עבודות (work-traker) via shared localStorage ── */
+function pushToWorkTracker() {
+    try {
+        const jobs = JSON.parse(localStorage.getItem('wt_v4') || '[]');
+        let counter = parseInt(localStorage.getItem('wt_cnt4') || '0', 10) || 0;
+        counter++;
+        const dateVal = document.getElementById('f-date').value;
+        let wtDate = '';
+        if (dateVal) {
+            const [y, m, d] = dateVal.split('-');
+            wtDate = `${d}/${m}/${y.slice(2)}`;
+        }
+        const job = {
+            id: Date.now(),
+            num: counter,
+            date: wtDate,
+            cust: v('f-client'),
+            proj: v('f-site'),
+            desc: jobName(),
+            status: 'open',
+            notes: 'נשלח מהטופס' + (wnum() ? ' | ' + wnum() : '')
+        };
+        jobs.unshift(job);
+        localStorage.setItem('wt_v4', JSON.stringify(jobs));
+        localStorage.setItem('wt_cnt4', String(counter));
+    } catch (e) { /* localStorage unavailable — skip silently */ }
 }
 
 /* ── PDF ── */
@@ -973,6 +857,9 @@ function buildPdfHTML() {
           <td style="width:34%;${tdStyle}">${lbl('מועד אספקה')}${fmtDate(v('f-delivery'))}</td>
           <td style="width:33%;${tdStyle}">${lbl('הזמנת לקוח')}${sp(v('f-corder'))}</td>
         </tr>
+        <tr>
+          <td colspan="3" style="${tdStyle}">${lbl('שם העבודה')}${sp(jobName())}</td>
+        </tr>
       </table>
 
       <!-- Items (no מספר קטלוגי) -->
@@ -1017,15 +904,13 @@ function buildPdfHTML() {
 }
 
 function pdfFileName() {
-    const rows = collectRows();
-    const raw = (rows[0] && rows[0].desc) || v('f-client') || 'טופס הזמנת עבודה';
+    const raw = jobName();
     const safe = raw.replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
     return (safe || 'טופס הזמנת עבודה')
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function downloadPDF() {
-    logJob();
     saveNewContactsFromForm();
     const content = buildPdfHTML();
     const win = window.open('', '_blank');
@@ -1083,6 +968,7 @@ ${v('f-from')}`;
 
 function sendEmail() {
     saveNewContactsFromForm();
+    pushToWorkTracker();
     const subject = encodeURIComponent(
         `הזמנת עבודה – ${v('f-client')} – ${v('f-site') || 'ללא פרויקט'} – ${v('f-wnum') ? 'PR' + v('f-wnum') : ''}`
     );

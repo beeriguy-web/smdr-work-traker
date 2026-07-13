@@ -468,7 +468,7 @@ const SHEETS_API = 'https://script.google.com/macros/s/AKfycbxy_ApQma-kWOy05t8Xa
 let CONTACTS_DB = {};
 
 fetch(SHEETS_API)
-  .then(r => r.json())
+  .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
   .then(rows => {
     rows.forEach(row => {
       if (!row.company) return;
@@ -476,7 +476,10 @@ fetch(SHEETS_API)
       CONTACTS_DB[row.company].push({ n: row.name, p: row.phone, e: row.email });
     });
   })
-  .catch(() => { CONTACTS_DB = _OLD_CONTACTS_DB; });
+  .catch(() => {
+    CONTACTS_DB = _OLD_CONTACTS_DB;
+    toast('⚠ טעינת אנשי קשר מהגיליון נכשלה — מוצגת רשימה ישנה בלבד');
+  });
 
 function saveNewContact(company, name, phone, email) {
   if (!name || !company) return;

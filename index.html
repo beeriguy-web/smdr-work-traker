@@ -289,10 +289,7 @@
 
         <!-- Multi-contact -->
         <div style="margin-top:14px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <label class="form-label mb-0" style="font-weight:600;">אנשי קשר</label>
-                <button type="button" class="btn btn-sm btn-outline-primary" id="btn-add-contact" onclick="addContact()">+ הוסף איש קשר</button>
-            </div>
+            <label class="form-label mb-0" style="font-weight:600;">אנשי קשר</label>
             <div id="contacts-list"></div>
         </div>
 
@@ -547,9 +544,10 @@ function renderContacts() {
         '<div class="col-auto">' +
         (formContacts.length > 1 ? '<button class="btn btn-sm btn-outline-danger" onclick="removeContact(' + i + ')">✕</button>' : '') +
         '</div></div></div>'
-    ).join('');
-    document.getElementById('btn-add-contact').style.display =
-        formContacts.length >= 5 ? 'none' : '';
+    ).join('') +
+    (formContacts.length < 5
+        ? '<button type="button" class="btn btn-sm btn-outline-primary mt-2" id="btn-add-contact" onclick="addContact()">+ הוסף איש קשר</button>'
+        : '');
 }
 
 function addContact() {
@@ -557,6 +555,8 @@ function addContact() {
     syncContactsFromDOM();
     formContacts.push({ name:'', phone:'', email:'' });
     renderContacts();
+    const newIdx = formContacts.length - 1;
+    document.getElementById('ct-name-' + newIdx).focus();
 }
 
 function removeContact(idx) {

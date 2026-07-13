@@ -493,10 +493,30 @@ function saveNewContact(company, name, phone, email) {
   CONTACTS_DB[company].push({ n: name, p: phone, e: email });
 }
 
+// Strips invisible bidi/formatting marks (e.g. left over from copy-pasting RTL text)
+// and collapses whitespace, so visually-identical strings compare equal.
+function normalizeForMatch(s) {
+    return (s || '').replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// Resolves a typed/partial/copy-pasted company name to its full existing CONTACTS_DB
+// key, so saving still lands on the right company even if the field's raw text has
+// stray invisible characters or is only part of the full name.
+function resolveCompanyName(typed) {
+    if (CONTACTS_DB[typed]) return typed;
+    const keys = Object.keys(CONTACTS_DB);
+    const normTyped = normalizeForMatch(typed);
+    const exact = keys.find(k => normalizeForMatch(k) === normTyped);
+    if (exact) return exact;
+    const matches = keys.filter(k => normalizeForMatch(k).includes(normTyped));
+    return matches.length === 1 ? matches[0] : typed;
+}
+
 // Auto-saves the client/contacts typed in the form to CONTACTS_DB if not already known
 function saveNewContactsFromForm() {
-    const company = v('f-client');
-    if (!company) return;
+    const typed = v('f-client');
+    if (!typed) return;
+    const company = resolveCompanyName(typed);
     const existing = CONTACTS_DB[company] || [];
     collectContacts().forEach(c => {
         if (!c.name || existing.some(e => e.n === c.name)) return;

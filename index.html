@@ -599,6 +599,28 @@ function acNavigate(input, box, onSelect) {
     });
 }
 
+// Lets Enter move focus to the next field like Tab already does, without
+// touching Tab's native behavior. Runs after acNavigate's own listener (which
+// fires first on the same input and selects a highlighted autocomplete item),
+// so picking a suggestion with Enter then immediately advances to the next field.
+// Textareas are skipped so Enter still inserts a newline there.
+function focusableFormFields() {
+    return [...document.querySelectorAll(
+        '#main-form input:not([type=hidden]):not(:disabled), #main-form textarea:not(:disabled)'
+    )].filter(el => el.offsetParent !== null);
+}
+
+document.getElementById('main-form').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+    e.preventDefault();
+    const fields = focusableFormFields();
+    const idx = fields.indexOf(e.target);
+    if (idx === -1 || idx === fields.length - 1) return;
+    const next = fields[idx + 1];
+    next.focus();
+    if (next.select) next.select();
+});
+
 function onClientInput(val) {
     const input = document.getElementById('f-client');
     const box = document.getElementById('client-ac');
@@ -996,7 +1018,7 @@ function sendEmail() {
         `הזמנת עבודה – ${v('f-client')} – ${v('f-site') || 'ללא פרויקט'} – ${v('f-wnum') ? 'PR' + v('f-wnum') : ''}`
     );
     const body = encodeURIComponent(buildEmailBody());
-    window.location.href = `mailto:gal@smdrtech.co.il?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:gal@smdrtech.co.il?cc=guy@smdrtech.co.il&subject=${subject}&body=${body}`;
 }
 </script>
 

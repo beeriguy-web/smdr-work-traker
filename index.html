@@ -865,6 +865,11 @@ function buildPdfHTML() {
         </div>
       </div>
 
+      <!-- Job name (moved to the top, mirrors the on-screen form) -->
+      <div style="background:#fbe4e4;border-right:4px solid #bc2129;padding:8px 10px;margin-bottom:12px;direction:rtl;">
+        <b style="color:#bc2129;">שם${S}העבודה:</b>${S}${sp(jobName())}
+      </div>
+
       <!-- Meta -->
       <table style="width:100%;margin-bottom:12px;border-collapse:collapse;">
         <tr>
@@ -906,9 +911,6 @@ function buildPdfHTML() {
           <td style="width:33%;${tdStyle}">${lbl("מס' עבודה")}<span style="direction:ltr;unicode-bidi:isolate;">${wnum()}</span></td>
           <td style="width:34%;${tdStyle}">${lbl('מועד אספקה')}${fmtDate(v('f-delivery'))}</td>
           <td style="width:33%;${tdStyle}">${lbl('הזמנת לקוח')}${sp(v('f-corder'))}</td>
-        </tr>
-        <tr>
-          <td colspan="3" style="${tdStyle}">${lbl('שם העבודה')}${sp(jobName())}</td>
         </tr>
       </table>
 

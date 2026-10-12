@@ -801,7 +801,7 @@ function newForm() {
 }
 
 /* ── Attached images (pasted via Ctrl+V — e.g. Excel/screenshot snippets) ── */
-let attachedImages = []; // array of data URLs
+let attachedImages = []; // array of {src, w, h} — w/h are the on-screen/PDF display size (resizable, see renderImageGallery)
 
 document.getElementById('img-paste-zone').addEventListener('paste', function (e) {
     // Always block the browser's own paste-into-value behavior — this field is
@@ -812,8 +812,10 @@ document.getElementById('img-paste-zone').addEventListener('paste', function (e)
     for (const item of items) {
         if (item.type.indexOf('image') === 0) {
             const blob = item.getAsFile();
-            downscaleImage(blob, dataUrl => {
-                attachedImages.push(dataUrl);
+            downscaleImage(blob, (dataUrl, naturalW, naturalH) => {
+                const w = Math.min(260, naturalW);
+                const h = Math.round(naturalH * w / naturalW);
+                attachedImages.push({ src: dataUrl, w, h });
                 renderImageGallery();
             });
         }
@@ -835,7 +837,7 @@ function downscaleImage(blob, callback) {
             canvas.width = w;
             canvas.height = h;
             canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            callback(canvas.toDataURL('image/jpeg', 0.85));
+            callback(canvas.toDataURL('image/jpeg', 0.85), w, h);
         };
         img.src = ev.target.result;
     };
@@ -844,13 +846,28 @@ function downscaleImage(blob, callback) {
 
 function renderImageGallery() {
     const gallery = document.getElementById('img-gallery');
-    gallery.innerHTML = attachedImages.map((src, i) =>
+    gallery.innerHTML = attachedImages.map((im, i) =>
         '<div style="position:relative;">' +
-        '<img src="' + src + '" style="max-width:140px;max-height:140px;border:1px solid #ddd;border-radius:4px;display:block;">' +
+        '<div class="img-resize-wrap" data-idx="' + i + '" style="resize:both;overflow:hidden;border:1px solid #ddd;border-radius:4px;width:' + im.w + 'px;height:' + im.h + 'px;min-width:60px;min-height:60px;max-width:700px;max-height:700px;">' +
+        '<img src="' + im.src + '" style="width:100%;height:100%;object-fit:contain;display:block;">' +
+        '</div>' +
         '<button type="button" onclick="removeAttachedImage(' + i + ')" ' +
-        'style="position:absolute;top:-6px;left:-6px;background:#bc2129;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:1;">✕</button>' +
+        'style="position:absolute;top:-6px;left:-6px;background:#bc2129;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:1;z-index:1;">✕</button>' +
         '</div>'
     ).join('');
+
+    // Like a textarea's native drag-corner resize, but for each pasted image —
+    // ResizeObserver is how we read back the size the user dragged it to.
+    gallery.querySelectorAll('.img-resize-wrap').forEach(wrap => {
+        const idx = parseInt(wrap.dataset.idx, 10);
+        new ResizeObserver(entries => {
+            const { width, height } = entries[0].contentRect;
+            if (attachedImages[idx]) {
+                attachedImages[idx].w = Math.round(width);
+                attachedImages[idx].h = Math.round(height);
+            }
+        }).observe(wrap);
+    });
 }
 
 function removeAttachedImage(idx) {
@@ -917,7 +934,7 @@ function buildPdfHTML() {
     const imagesHTML = attachedImages.length
         ? `<div style="${secStyle}">תמונות${S}מצורפות</div>
            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
-             ${attachedImages.map(src => `<img src="${src}" style="max-width:260px;max-height:260px;border:1px solid #ccc;border-radius:4px;">`).join('')}
+             ${attachedImages.map(im => `<img src="${im.src}" style="width:${im.w}px;height:${im.h}px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`).join('')}
            </div>`
         : '';
 

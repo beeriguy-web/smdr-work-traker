@@ -345,6 +345,13 @@
         <div class="sec-label">תיאור העבודה</div>
         <textarea class="form-control" id="f-desc" rows="5" placeholder="פרט את העבודה הנדרשת, הנחיות מיוחדות, הערות..."></textarea>
 
+        <!-- Attached images: a separate paste target, doesn't touch the תיאור העבודה textarea -->
+        <div class="sec-label" style="margin-top:14px;">תמונות מצורפות</div>
+        <div id="img-paste-zone" tabindex="0" style="border:2px dashed #d6343e;border-radius:8px;padding:14px;text-align:center;color:#8a5a5d;cursor:text;background:#fffafa;">
+            לחץ כאן והדבק תמונה (Ctrl+V) — גזירות אקסל, צילומי מסך וכו'
+        </div>
+        <div id="img-gallery" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
+
         <!-- Approval (removed date, auto-filled name, canvas signature) -->
         <div class="approval-wrap">
             <div class="sec-label">אישור</div>
@@ -782,6 +789,8 @@ function newForm() {
     });
     formContacts = [{ name:'', phone:'', email:'' }];
     renderContacts();
+    attachedImages = [];
+    renderImageGallery();
     document.getElementById('f-date').valueAsDate  = new Date();
     document.getElementById('f-to').value          = 'גל בניטה - מנהל משרד טכני';
     document.getElementById('f-from').value        = 'גיא בארי - מנהל מכירות ופרויקטים';
@@ -789,6 +798,61 @@ function newForm() {
     document.getElementById('items-body').innerHTML = '';
     for (let i = 0; i < 2; i++) addRow();
     drawDefaultSignature();
+}
+
+/* ── Attached images (pasted via Ctrl+V — e.g. Excel/screenshot snippets) ── */
+let attachedImages = []; // array of data URLs
+
+document.getElementById('img-paste-zone').addEventListener('paste', function (e) {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (const item of items) {
+        if (item.type.indexOf('image') === 0) {
+            e.preventDefault();
+            const blob = item.getAsFile();
+            downscaleImage(blob, dataUrl => {
+                attachedImages.push(dataUrl);
+                renderImageGallery();
+            });
+        }
+    }
+});
+
+// Caps pasted images at 1000px wide and re-encodes as JPEG so a 4K screenshot
+// doesn't bloat the in-memory form or the generated PDF.
+function downscaleImage(blob, callback) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const img = new Image();
+        img.onload = () => {
+            const maxW = 1000;
+            let w = img.width, h = img.height;
+            if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            callback(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(blob);
+}
+
+function renderImageGallery() {
+    const gallery = document.getElementById('img-gallery');
+    gallery.innerHTML = attachedImages.map((src, i) =>
+        '<div style="position:relative;">' +
+        '<img src="' + src + '" style="max-width:140px;max-height:140px;border:1px solid #ddd;border-radius:4px;display:block;">' +
+        '<button type="button" onclick="removeAttachedImage(' + i + ')" ' +
+        'style="position:absolute;top:-6px;left:-6px;background:#bc2129;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:1;">✕</button>' +
+        '</div>'
+    ).join('');
+}
+
+function removeAttachedImage(idx) {
+    attachedImages.splice(idx, 1);
+    renderImageGallery();
 }
 
 /* ── Job name (shared with pdfFileName() and מעקב עבודות) ── */
@@ -846,6 +910,13 @@ function buildPdfHTML() {
             <td style="border:1px solid #a88;padding:8px 6px;">${sp(r.notes)}</td>
          </tr>`
     ).join('');
+
+    const imagesHTML = attachedImages.length
+        ? `<div style="${secStyle}">תמונות${S}מצורפות</div>
+           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+             ${attachedImages.map(src => `<img src="${src}" style="max-width:260px;max-height:260px;border:1px solid #ccc;border-radius:4px;">`).join('')}
+           </div>`
+        : '';
 
     const signatureHTML = sigData
         ? `<img src="${sigData}" style="max-height:70px;max-width:220px;display:block;margin-top:4px;">`
@@ -931,6 +1002,8 @@ function buildPdfHTML() {
       <!-- Description -->
       <div style="${secStyle}">תיאור${S}העבודה</div>
       <div style="border:1px solid #ccc;padding:10px;min-height:70px;white-space:pre-wrap;word-break:break-word;margin-bottom:14px;">${sp(v('f-desc'))}</div>
+
+      ${imagesHTML}
 
       <!-- Approval (no date) -->
       <div style="border-top:2px solid #bc2129;padding-top:10px;margin-top:10px;">

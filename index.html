@@ -347,9 +347,9 @@
 
         <!-- Attached images: a separate paste target, doesn't touch the תיאור העבודה textarea -->
         <div class="sec-label" style="margin-top:14px;">תמונות מצורפות</div>
-        <div id="img-paste-zone" tabindex="0" style="border:2px dashed #d6343e;border-radius:8px;padding:14px;text-align:center;color:#8a5a5d;cursor:text;background:#fffafa;">
-            לחץ כאן והדבק תמונה (Ctrl+V) — גזירות אקסל, צילומי מסך וכו'
-        </div>
+        <input type="text" id="img-paste-zone" autocomplete="off"
+               placeholder="לחץ כאן והדבק תמונה (Ctrl+V או קליק ימני ← הדבקה) — גזירות אקסל, צילומי מסך וכו'"
+               style="width:100%;border:2px dashed #d6343e;border-radius:8px;padding:14px;text-align:center;color:#8a5a5d;background:#fffafa;">
         <div id="img-gallery" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
 
         <!-- Approval (removed date, auto-filled name, canvas signature) -->
@@ -804,11 +804,13 @@ function newForm() {
 let attachedImages = []; // array of data URLs
 
 document.getElementById('img-paste-zone').addEventListener('paste', function (e) {
+    // Always block the browser's own paste-into-value behavior — this field is
+    // a paste target for images only, never meant to hold typed/pasted text.
+    e.preventDefault();
     const items = e.clipboardData && e.clipboardData.items;
     if (!items) return;
     for (const item of items) {
         if (item.type.indexOf('image') === 0) {
-            e.preventDefault();
             const blob = item.getAsFile();
             downscaleImage(blob, dataUrl => {
                 attachedImages.push(dataUrl);
@@ -816,6 +818,7 @@ document.getElementById('img-paste-zone').addEventListener('paste', function (e)
             });
         }
     }
+    e.target.value = '';
 });
 
 // Caps pasted images at 1000px wide and re-encodes as JPEG so a 4K screenshot

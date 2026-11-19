@@ -305,6 +305,9 @@
         <span class="tab-sep"></span>
         <button class="view-tab" data-v="hv" onclick="showView('hv')">מסירת פרויקטים לתכנון</button>
         <button class="view-tab" data-v="track" onclick="showView('track')">📐 מעקב מסירות</button>
+        <span class="tab-sep"></span>
+        <button class="view-tab" data-v="hr" onclick="showView('hr')">ישיבת היערכות לתכנון</button>
+        <button class="view-tab" data-v="hrtrack" onclick="showView('hrtrack')">📋 מעקב היערכות</button>
     </div>
     <div class="d-flex gap-2 flex-wrap" id="form-actions">
         <button class="btn btn-outline-light" onclick="actNew()">טופס חדש</button>
@@ -629,6 +632,7 @@
     </div>
 </div>
 <div class="hidden-view" id="wt-view" style="max-width:1300px;margin:16px auto 0;"><iframe id="wt-frame" title="מעקב עבודות" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#f4f6fa;" src="https://beeriguy-web.github.io/work-traker/"></iframe></div>
+<div class="hidden-view" id="hr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="hr-frame" title="ישיבת היערכות לתכנון" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="hiarchut.html"></iframe></div>
 
 <!-- ════ TOAST ════ -->
 <div class="toast-msg" id="toast"></div>
@@ -1949,15 +1953,17 @@ function updateTrackBadge() {
 }
 
 /* ── View switching + toolbar dispatch ── */
-const VIEW_TITLES = { wo: '📋 טופס הזמנת עבודה פנימית', hv: '📐 מסירת פרויקט לתכנון', track: '📐 מעקב מסירות', wt: '📊 מעקב עבודות' };
+const VIEW_TITLES = { wo: '📋 טופס הזמנת עבודה פנימית', hv: '📐 מסירת פרויקט לתכנון', track: '📐 מעקב מסירות', wt: '📊 מעקב עבודות', hr: '📝 ישיבת היערכות לתכנון', hrtrack: '📋 מעקב היערכות' };
 function showView(name) {
     currentView = name;
     document.getElementById('main-form').classList.toggle('hidden-view', name !== 'wo');
     document.getElementById('hv-form').classList.toggle('hidden-view', name !== 'hv');
     document.getElementById('hv-track').classList.toggle('hidden-view', name !== 'track');
     document.getElementById('wt-view').classList.toggle('hidden-view', name !== 'wt');
+    document.getElementById('hr-view').classList.toggle('hidden-view', name !== 'hr' && name !== 'hrtrack');
+    if (name === 'hr' || name === 'hrtrack') { try { document.getElementById('hr-frame').contentWindow.location.hash = name === 'hr' ? 'form' : 'trk'; } catch (e) {} }
     document.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t.dataset.v === name));
-    document.getElementById('form-actions').style.display = (name === 'track' || name === 'wt') ? 'none' : '';
+    document.getElementById('form-actions').style.display = (name === 'track' || name === 'wt' || name === 'hr' || name === 'hrtrack') ? 'none' : '';
     document.querySelector('.toolbar-title').textContent = VIEW_TITLES[name];
     if (name === 'track') renderTrack();
     if (name === 'hv') setTimeout(() => document.getElementById('hv-project').focus(), 50);

@@ -52,3 +52,12 @@ The toolbar has oval view tabs (`showView(name)`): `wo` = the original work-orde
 - **PDF** (`buildHvPdfHTML`) uses the Hebrew שמדר letterhead image (`HV_LOGO`). The popup closes itself after printing so the user returns to the editable form.
 - **Email**: `mailto:gal@smdrtech.co.il?cc=guy@smdrtech.co.il`; also logs to the handover tracker.
 - **מעקב מסירות** stores entries in `localStorage['smdr_handover_log_v1']` (same project+number → updated, not duplicated); status per row, overdue (red) / supply within 7 days (yellow), Excel export via xlsx-js-style loaded on demand with auto-fit column widths.
+
+## Third form: ישיבת היערכות לתכנון (added 2026-11)
+
+- Lives in its own file, **`hiarchut.html`** (self-contained: inline CSS/JS, html2canvas + jsPDF from cdnjs, Heebo font). `index.html` only hosts it: toolbar tabs `hr` ("ישיבת היערכות לתכנון") and `hrtrack` ("📋 מעקב היערכות") both show `#hr-view`, an `<iframe id="hr-frame" src="hiarchut.html">`; `showView` sets the iframe's hash to `#form` / `#trk`. The shared toolbar buttons (טופס חדש / PDF / שלח במייל) are hidden on these views — the page has its own.
+- Question bank `Q` + per-template order `ORD.G` (general) / `ORD.D` (Dania Sibus). The template must be picked first ("רשימת סעיפים"); picking Dania fills the client `דניה סיבוס בעמ` (exact Sheet company name).
+- Contacts/architects: loaded from the same `SHEETS_API` (and `?type=architects`); new ones are POSTed (same body shapes as the hv form) when the PDF is produced or the mail is sent (`saveContactsToSheet`). Roles aren't in the Sheet — kept locally in `DB.roles`.
+- Per-question states: answered / "ממתין לתשובת הלקוח" (yellow in the PDF) / "לא רלוונטי" (left out; summary renumbers 1..N).
+- PDF: rendered client-side from the on-screen summary (`#paper`) with html2canvas → jsPDF, rows never split across pages, logo repeated on each page. On phones it opens the share sheet (WhatsApp / OneDrive); on desktop it downloads.
+- Meetings and editions are stored in `localStorage['hiarchut_db_live']` (per device). "עדכון" opens the latest edition; on save a new edition is created and changed answers get a green "עודכן <date>" cell.

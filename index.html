@@ -303,7 +303,7 @@
         <button class="view-tab" data-v="wt" onclick="showView('wt')">📊 מעקב עבודות</button>
         <span class="tab-sep"></span>
         <button class="view-tab" data-v="hv" onclick="showView('hv')">מסירת פרויקטים לתכנון</button>
-        <button class="view-tab" data-v="track" onclick="showView('track')">📐 מעקב מסירות <span class="badge bg-dark rounded-pill" id="track-badge"></span></button>
+        <button class="view-tab" data-v="track" onclick="showView('track')">📐 מעקב מסירות</button>
     </div>
     <div class="d-flex gap-2 flex-wrap" id="form-actions">
         <button class="btn btn-outline-light" onclick="actNew()">טופס חדש</button>
@@ -1327,8 +1327,9 @@ ${content}
 <script>
   window.addEventListener('load', function() {
     setTimeout(function() {
-      window.print();
       window.onafterprint = function() { window.close(); };
+      window.print();
+      setTimeout(function() { window.close(); }, 300);
     }, 400);
   });
 <\/script>
@@ -1709,7 +1710,7 @@ function hvDownloadPDF() {
     if (!win) { toast('הדפדפן חסם את החלון – אפשר חלונות קופצים'); return; }
     win.document.write(`<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8"><title>מסירת פרויקט לתכנון ${esc(v('hv-project').replace(/[\\/:*?"<>|]/g, ' '))}</title>
 <style>*{font-family:Arial,sans-serif;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;} body{margin:0;} @page{size:A4;margin:10mm;}</style>
-</head><body>${buildHvPdfHTML()}<script>window.onafterprint=function(){window.close();};window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body></html>`);
+</head><body>${buildHvPdfHTML()}<script>window.onafterprint=function(){window.close();};window.onload=function(){setTimeout(function(){window.print();setTimeout(function(){window.close();},300);},400);};<\/script></body></html>`);
     win.document.close();
     toast('שמור כ-PDF בחלון שנפתח ✓ – אחרי השמירה הוא ייסגר ותחזור לטופס לעריכה');
 }

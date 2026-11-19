@@ -1352,10 +1352,7 @@ function buildEmailBody() {
 
     return `שלום גל,
 
-מצורפת הזמנת עבודה פנימית לביצוע. אנא ראה PDF מצורף.${mailContacts(cts.map(c => ({ n: c.name, e: c.email })))}
-
-בברכה,
-${v('f-from')}`;
+מצורפת הזמנת עבודה פנימית לביצוע. אנא ראה PDF מצורף.${mailContacts(cts.map(c => ({ n: c.name, e: c.email })))}`;  // הסיום והחתימה מגיעים מחתימת Outlook
 }
 
 function sendEmail() {
@@ -1780,10 +1777,7 @@ function hvSendEmail() {
 פרויקט / אתר: ${d['hv-project']}
 לקוח: ${d['hv-client']}
 מספר פרויקט: ${wn}
-תאריך אספקה: ${fmtDate(d['hv-d-supply'])}${d.bridges ? '\n' + d.bridges : ''}${mailContacts(people)}
-
-בברכה,
-${d['hv-from']}`;
+תאריך אספקה: ${fmtDate(d['hv-d-supply'])}${d.bridges ? '\n' + d.bridges : ''}${mailContacts(people)}`;  // הסיום והחתימה מגיעים מחתימת Outlook
     openMailWithBody(`mailto:${HV_TO}?cc=${encodeURIComponent(HV_CC)}&subject=${encodeURIComponent(subject)}`, body, 'נרשם בטבלת המעקב ✓');
 }
 

@@ -1718,11 +1718,13 @@ function hvDownloadPDF() {
 /* ── Email + log ── */
 // סימן כיוון ימין-לשמאל (RLM) בתחילת כל שורה – כדי שתוכנת המייל תציג את הטקסט מימין לשמאל
 function rtlLines(t) { return String(t).split('\n').map(l => '\u200F' + l).join('\r\n'); }
+// מפריד עם סימני RLM משני הצדדים – כדי שמקף בין עברית לאנגלית/מייל לא יקפוץ למקום אחר בשורה
+const MAIL_SEP = ' \u200F-\u200F ';
 // אנשי קשר לתכתובות בגוף המייל – שם ומייל בלבד (בלי טלפון)
 function mailContacts(list) {
     const L = (list || []).filter(c => c.n);
     if (!L.length) return '';
-    return '\nאנשי קשר לתכתובות:\n' + L.map(c => c.n + (c.e ? ' – ' + c.e : '')).join('\n');
+    return '\nאנשי קשר לתכתובות:\n' + L.map(c => c.n + (c.e ? MAIL_SEP + c.e : '') + '\u200F').join('\n');
 }
 function hvSendEmail() {
     const d = hvCollect();
@@ -1739,7 +1741,7 @@ function hvSendEmail() {
     const wn = d['hv-wnum'] ? 'PR' + d['hv-wnum'] : '';
     const subject = `מסירת פרויקט לתכנון – ${d['hv-project'] || ''} – ${d['hv-client'] || ''}${wn ? ' – ' + wn : ''}`;
     const people = d.contacts.filter(c => c.n).map(c => ({ n: c.n, e: c.e }))
-        .concat(d.archs.filter(a => a.n || a.o).map(a => ({ n: (a.n || a.o) + ' (אדריכל' + (a.n && a.o ? ', ' + a.o : '') + ')', e: a.e })));
+        .concat(d.archs.filter(a => a.n || a.o).map(a => ({ n: [a.n, 'אדריכל', a.o].filter(Boolean).join(MAIL_SEP), e: a.e })));
     const body =
 `שלום גל,
 

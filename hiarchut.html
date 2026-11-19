@@ -558,16 +558,37 @@ function renderSummary(){
  h+=`<div class="ft"><span>${fmtD(today())}</span><span>היערכות לתכנון פרויקט - ${esc(F.project)}${ed>1?' - מהדורה '+ed:''}</span></div>`;
  document.getElementById('paper').innerHTML=h;
  const to=F.contacts.map(c=>c.m).filter(Boolean);
- document.getElementById('mailBox').innerHTML=`<b>טיוטת מייל</b><div class="note" dir="ltr" style="text-align:right">אל: ${esc(to.join('; '))||'(בחר אנשי קשר)'}</div><pre id="mailTxt">${esc(mailText(waits,ed,R,upd))}</pre>`;
+ const M=mailText(waits,ed,R,upd);window._mail=M;
+ document.getElementById('mailBox').innerHTML=`<b>טיוטת מייל</b><div class="note" dir="ltr" style="text-align:right">אל: ${esc(to.join('; '))||'(בחר אנשי קשר)'} · העתק: guy@smdrtech.co.il</div><div class="note">נושא: ${esc(M.subj)}</div><pre id="mailTxt">${esc(M.body)}</pre>`;
 }
 function taskText(r){const a=r.a||'';return /לקבל|יעביר|לבדוק|להעביר|במידה/.test(a)?a.replace(/\n/g,' '):(r.q.split('\n')[0]+(a?' - '+a.replace(/\n/g,' '):''))}
+// ---- mail: same convention as the other forms (RTL HTML body copied to clipboard -> Ctrl+V in Outlook; Outlook adds the signature)
+const MAIL_SEP=' ‏-‏ ';
+function rtlLines(t){return String(t).split('\n').map(l=>'‏'+l).join('\r\n')}
+function mailHtml(text){
+ const e=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+ const lines=String(text).split('\n').map(l=>{
+  if(!l.trim())return '<p dir="rtl" style="margin:0;text-align:right;">&nbsp;</p>';
+  const h=e(l).replace(/([\w.+-]+@[\w-]+(\.[\w-]+)+)/g,'<span dir="ltr">$1</span>');
+  return `<p dir="rtl" style="margin:0;text-align:right;">${h}</p>`});
+ return `<div dir="rtl" style="direction:rtl;text-align:right;font-family:Arial,sans-serif;font-size:11pt;">${lines.join('')}</div>`;
+}
+async function openMailWithBody(mailtoNoBody,text,extraMsg){
+ let copied=false;
+ try{if(navigator.clipboard&&window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([mailHtml(text)],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]);copied=true}}catch(e){copied=false}
+ if(copied){window.top.location.href=mailtoNoBody;toast('📋 גוף המייל הועתק – לחץ בגוף המייל Ctrl+V'+(extraMsg?' · '+extraMsg:''))}
+ else{window.top.location.href=mailtoNoBody+'&body='+encodeURIComponent(rtlLines(text));toast('נפתח מייל'+(extraMsg?' · '+extraMsg:''))}
+}
 function mailText(waits,ed,R,upd){
- const subj=`נושא: ${ed>1?'עדכון - ':''}סיכום ישיבת היערכות לתכנון - ${F.project}`;
- let t=`${subj}\n\nשלום רב,\n`;
- if(ed>1){const u=R.filter((r,i)=>upd[i]).map(r=>r.n);t+=`מצורף סיכום מעודכן (מהדורה ${ed}) לפרויקט ${F.project}.${u.length?'\nעודכנו סעיפים: '+u.join(', ')+'.':''}\n`}
- else t+=`תודה על הפגישה. מצורף סיכום ישיבת ההיערכות לתכנון לפרויקט ${F.project}.\n`;
- if(waits.length)t+=`\nכדי להתקדם בתכנון, נבקש להעביר בהקדם תשובות לסעיפים המסומנים בצהוב:\n`+waits.map(r=>`• סעיף ${r.n}: ${taskText(r)}`).join('\n')+'\n';
- t+=`\nבברכה,\nגיא\nשמדר טכנולוגיות בע"מ`;return t;
+ const pr=F.job?F.job:'';
+ const subj=`${ed>1?'עדכון - ':''}סיכום ישיבת היערכות לתכנון – ${F.project||''} – ${F.client||''}${pr?' – '+pr:''}`;
+ let t=`שלום רב,\n\n`;
+ if(ed>1){const u=R.filter((r,i)=>upd[i]).map(r=>r.n);t+=`מצורף סיכום מעודכן (מהדורה ${ed}) של ישיבת ההיערכות לתכנון. אנא ראו PDF מצורף.${u.length?'\nעודכנו סעיפים: '+u.join(', ')+'.':''}\n`}
+ else t+=`תודה על הפגישה. מצורף סיכום ישיבת ההיערכות לתכנון. אנא ראו PDF מצורף.\n`;
+ t+=`פרויקט: ${F.project||''}\nלקוח: ${F.client||''}${pr?'\nמספר פרויקט: '+pr:''}\nתאריך ישיבה: ${fmtD(F.date)}\n`;
+ if(waits.length)t+=`\nכדי להתקדם בתכנון, נבקש להעביר בהקדם תשובות לסעיפים המסומנים בצהוב:\n`+waits.map(r=>`סעיף ${r.n}${MAIL_SEP}${taskText(r)}‏`).join('\n')+'\n';
+ t+='\n\n';  // two empty lines, then the Outlook signature
+ return {subj,body:t};
 }
 function goSummary(){show('sum')}
 
@@ -608,14 +629,11 @@ async function makePdf(){
  finally{btn.disabled=false;btn.textContent=old}
 }
 function sendMail(){
- saveMeeting(true);saveContactsToSheet();
- const t=document.getElementById('mailTxt').textContent;const lines=t.split('\n');
- const subj=lines[0].replace(/^נושא:\s*/,'');const body=lines.slice(2).join('\n')+'\n\n(קובץ ה-PDF של הסיכום מצורף)';
- const to=F.contacts.map(c=>c.m).filter(Boolean).join(';');
- location.href=`mailto:${to}?cc=guy@smdrtech.co.il&subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
- toast('נפתח מייל - צרף את קובץ ה-PDF');
+ saveMeeting(true);saveContactsToSheet();renderSummary();
+ const M=window._mail;const to=F.contacts.map(c=>c.m).filter(Boolean).join(';');
+ openMailWithBody(`mailto:${to}?cc=guy@smdrtech.co.il&subject=${encodeURIComponent(M.subj)}`,M.body,'צרף את קובץ ה-PDF');
 }
-function copyMail(){const t=document.getElementById('mailTxt').textContent;navigator.clipboard.writeText(t).then(()=>toast('נוסח המייל הועתק ✓'),()=>toast('ההעתקה נחסמה - סמן והעתק ידנית'))}
+function copyMail(){const t=window._mail.body;navigator.clipboard.writeText(t).then(()=>toast('נוסח המייל הועתק ✓'),()=>toast('ההעתקה נחסמה - סמן והעתק ידנית'))}
 function saveMeeting(quiet){
  const R=rows();const snap={date:today(),rows:R,state:JSON.parse(JSON.stringify(F))};
  let m=F.editOf&&DB.meetings.find(x=>x.id===F.editOf);

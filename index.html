@@ -804,7 +804,7 @@ function renderContacts() {
         '<input id="ct-phone-' + i + '" class="form-control form-control-sm" type="tel" value="' + c.phone + '" placeholder="טלפון">' +
         '</div>' +
         '<div class="col-md-4">' +
-        '<input id="ct-email-' + i + '" class="form-control form-control-sm" type="email" value="' + c.email + '" placeholder="מייל לאישור פרטים">' +
+        '<input id="ct-email-' + i + '" class="form-control form-control-sm" type="text" inputmode="email" value="' + c.email + '" placeholder="מייל לאישור פרטים">' +
         '</div>' +
         '<div class="col-auto">' +
         (formContacts.length > 1 ? '<button class="btn btn-sm btn-outline-danger" onclick="removeContact(' + i + ')">✕</button>' : '') +
@@ -1429,7 +1429,7 @@ function hvRenderContacts() {
         <td class="lbl">${i < HV_ROLES.length ? c.role : `<input id="hv-ct-r-${i}" value="${q(c.role)}" placeholder="תפקיד">`}</td>
         <td><input id="hv-ct-n-${i}" value="${q(c.n)}" list="hv-ct-list" oninput="hvContactPick(${i})" placeholder="שם"></td>
         <td><input id="hv-ct-p-${i}" value="${q(c.p)}" type="tel" placeholder="טלפון"></td>
-        <td><input id="hv-ct-e-${i}" value="${q(c.e)}" type="email" placeholder="מייל" style="direction:ltr;text-align:right"></td>
+        <td><input id="hv-ct-e-${i}" value="${q(c.e)}" type="text" inputmode="email" placeholder="מייל" style="direction:ltr;text-align:right"></td>
         <td style="text-align:center">${i >= HV_ROLES.length ? `<button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="hvDelContact(${i})">✕</button>` : ''}</td></tr>`).join('');
 }
 function hvSyncContacts() {
@@ -1443,7 +1443,7 @@ function hvRenderArchs() {
         <td><input id="hv-ar-o-${i}" value="${q(a.o)}" list="hv-arch-office-list" oninput="hvArchOffice(${i})" placeholder="שם המשרד"></td>
         <td><input id="hv-ar-n-${i}" value="${q(a.n)}" list="hv-arch-name-list" onfocus="hvArchOffice(${i})" oninput="hvArchPick(${i})" placeholder="שם"></td>
         <td><input id="hv-ar-p-${i}" value="${q(a.p)}" type="tel" placeholder="טלפון"></td>
-        <td><input id="hv-ar-e-${i}" value="${q(a.e)}" type="email" placeholder="מייל" style="direction:ltr;text-align:right"></td>
+        <td><input id="hv-ar-e-${i}" value="${q(a.e)}" type="text" inputmode="email" placeholder="מייל" style="direction:ltr;text-align:right"></td>
         <td style="text-align:center">${i > 0 ? `<button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="hvDelArch(${i})">✕</button>` : ''}</td></tr>`).join('');
     hvArchOffice(0);
 }
@@ -1515,6 +1515,40 @@ function hvNext(el) {
     if (i >= f.length) return;
     const n = f[i]; n.focus(); if (n.select) n.select();
 }
+/* ── חיצים ימינה/שמאלה בין השדות (בשני הטפסים) ──
+   בתוך שדה עם טקסט החץ קודם מזיז את הסמן; כשהסמן מגיע לקצה השדה – החץ עובר לשדה הבא/הקודם.
+   בטופס מימין לשמאל: שמאל = השדה הבא, ימין = השדה הקודם. */
+function arrowNav(e, fieldsFn) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) return;
+    const t = e.target;
+    if (t.tagName !== 'INPUT' || t.type === 'radio' || t.type === 'checkbox') return;
+    const fwd = e.key === 'ArrowLeft';
+    let start = null, end = null;
+    try { start = t.selectionStart; end = t.selectionEnd; } catch (_) {}
+    if (start !== null && start !== undefined) {
+        if (start !== end) return;                          // יש טקסט מסומן – התנהגות רגילה
+        const ltr = getComputedStyle(t).direction === 'ltr';
+        const atStart = start === 0, atEnd = start === t.value.length;
+        // הכיוון שבו החץ "יוצא" מהשדה תלוי בכיוון הטקסט בשדה
+        const leaving = fwd ? (ltr ? atStart : atEnd) : (ltr ? atEnd : atStart);
+        if (!leaving) return;
+    }
+    const f = fieldsFn(), i = f.indexOf(t);
+    if (i === -1) return;
+    const n = f[i + (fwd ? 1 : -1)];
+    if (!n) return;
+    e.preventDefault();
+    n.focus();
+    // הסמן נעמד בסוף הטקסט – מוכן להמשך הקלדה או לתיקון
+    try { const L = n.value.length; n.setSelectionRange(L, L); } catch (_) {}
+}
+document.getElementById('main-form').addEventListener('keydown', e => arrowNav(e, focusableFormFields));
+document.getElementById('hv-form').addEventListener('keydown', e => {
+    if (e.target.matches && e.target.matches('[data-stop]')) return;   // בגשרים/פרט פינה החיצים בוחרים אפשרות
+    arrowNav(e, hvStops);
+});
+
 document.getElementById('hv-form').addEventListener('keydown', function (e) {
     const t = e.target;
     if (t.matches && t.matches('[data-stop]')) {

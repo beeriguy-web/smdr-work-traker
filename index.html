@@ -156,7 +156,8 @@
             font-size: 0.87rem;
             border-bottom: 1px solid #f0f0f0;
         }
-        .ac-item:hover, .ac-item.ac-active { background: #fbe9e9; }
+        .ac-item:hover { background: #fbe9e9; }
+        .ac-item.ac-active { background: #f2c9cb; font-weight: 600; }   /* הפריט שמסומן בחיצים – כהה מעט יותר */
 
         /* ── Contact rows ── */
         .contact-row { background: #f8fafc; border-radius: 7px; padding: 8px 10px; margin-bottom: 6px; border: 1px solid #f0dcdc; }
@@ -489,7 +490,7 @@
             </div>
             <div class="col-md-6 ac-wrap">
                 <label class="form-label">לקוח:</label>
-                <input class="form-control" id="hv-client" placeholder="שם חברה / לקוח" oninput="hvClientInput(this.value)" autocomplete="off">
+                <input class="form-control" id="hv-client" placeholder="שם חברה / לקוח" autocomplete="off">
                 <div class="ac-box" id="hv-client-ac"></div>
             </div>
             <div class="col-md-6">
@@ -506,7 +507,6 @@
         </div>
 
         <div class="sec-label">אנשי קשר לפרויקט</div>
-        <datalist id="hv-ct-list"></datalist>
         <div class="table-responsive">
         <table class="hv-table">
             <thead><tr><th style="width:170px">תפקיד</th><th>שם</th><th style="width:150px">טלפון</th><th>מייל</th><th style="width:34px"></th></tr></thead>
@@ -517,8 +517,6 @@
 
         <div class="sec-label">אדריכל</div>
         <div style="font-size:.75rem;color:#888;margin:-4px 0 6px">מאגר האדריכלים נשמר בנפרד ומנוהל רק מטופס זה</div>
-        <datalist id="hv-arch-office-list"></datalist>
-        <datalist id="hv-arch-name-list"></datalist>
         <div class="table-responsive">
         <table class="hv-table">
             <thead><tr><th>משרד אדריכלים</th><th>שם אדריכל</th><th style="width:150px">טלפון</th><th>מייל</th><th style="width:34px"></th></tr></thead>
@@ -1427,7 +1425,7 @@ const q = s => String(s || '').replace(/"/g, '&quot;');
 function hvRenderContacts() {
     document.getElementById('hv-contacts').innerHTML = hvContacts.map((c, i) => `<tr>
         <td class="lbl">${i < HV_ROLES.length ? c.role : `<input id="hv-ct-r-${i}" value="${q(c.role)}" placeholder="תפקיד">`}</td>
-        <td><input id="hv-ct-n-${i}" value="${q(c.n)}" list="hv-ct-list" oninput="hvContactPick(${i})" placeholder="שם"></td>
+        <td><input id="hv-ct-n-${i}" value="${q(c.n)}" autocomplete="off" placeholder="שם"></td>
         <td><input id="hv-ct-p-${i}" value="${q(c.p)}" type="tel" placeholder="טלפון"></td>
         <td><input id="hv-ct-e-${i}" value="${q(c.e)}" type="text" inputmode="email" placeholder="מייל" style="direction:ltr;text-align:right"></td>
         <td style="text-align:center">${i >= HV_ROLES.length ? `<button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="hvDelContact(${i})">✕</button>` : ''}</td></tr>`).join('');
@@ -1440,8 +1438,8 @@ function hvDelContact(i) { hvSyncContacts(); hvContacts.splice(i, 1); hvRenderCo
 
 function hvRenderArchs() {
     document.getElementById('hv-archs').innerHTML = hvArchs.map((a, i) => `<tr>
-        <td><input id="hv-ar-o-${i}" value="${q(a.o)}" list="hv-arch-office-list" oninput="hvArchOffice(${i})" placeholder="שם המשרד"></td>
-        <td><input id="hv-ar-n-${i}" value="${q(a.n)}" list="hv-arch-name-list" onfocus="hvArchOffice(${i})" oninput="hvArchPick(${i})" placeholder="שם"></td>
+        <td><input id="hv-ar-o-${i}" value="${q(a.o)}" autocomplete="off" placeholder="שם המשרד"></td>
+        <td><input id="hv-ar-n-${i}" value="${q(a.n)}" autocomplete="off" placeholder="שם"></td>
         <td><input id="hv-ar-p-${i}" value="${q(a.p)}" type="tel" placeholder="טלפון"></td>
         <td><input id="hv-ar-e-${i}" value="${q(a.e)}" type="text" inputmode="email" placeholder="מייל" style="direction:ltr;text-align:right"></td>
         <td style="text-align:center">${i > 0 ? `<button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="hvDelArch(${i})">✕</button>` : ''}</td></tr>`).join('');
@@ -1450,22 +1448,7 @@ function hvRenderArchs() {
 function hvSyncArchs() { hvArchs = hvArchs.map((a, i) => ({ o: v('hv-ar-o-' + i), n: v('hv-ar-n-' + i), p: v('hv-ar-p-' + i), e: v('hv-ar-e-' + i) })); }
 function hvAddArch() { hvSyncArchs(); if (hvArchs.length >= 5) return; hvArchs.push({ o: '', n: '', p: '', e: '' }); hvRenderArchs(); }
 function hvDelArch(i) { hvSyncArchs(); hvArchs.splice(i, 1); hvRenderArchs(); }
-function hvArchOffice(i) {
-    i = i || 0;
-    const offices = [...new Set(ARCH_DB.map(a => a.o).filter(Boolean))];
-    document.getElementById('hv-arch-office-list').innerHTML = offices.map(o => `<option value="${q(o)}">`).join('');
-    const off = v('hv-ar-o-' + i);
-    document.getElementById('hv-arch-name-list').innerHTML =
-        ARCH_DB.filter(a => !off || a.o === off).map(a => `<option value="${q(a.n)}">${a.o}</option>`).join('');
-}
-function hvArchPick(i) {
-    const off = v('hv-ar-o-' + i);
-    const a = ARCH_DB.find(x => x.n === v('hv-ar-n-' + i) && (!off || x.o === off));
-    if (a) {
-        if (!off) document.getElementById('hv-ar-o-' + i).value = a.o;
-        document.getElementById('hv-ar-p-' + i).value = a.p; document.getElementById('hv-ar-e-' + i).value = a.e;
-    }
-}
+function hvArchOffice() {}   // (השלמה אוטומטית עברה לרשימה הנפתחת – hvAC)
 function saveNewArchitect(d) {
     (d.archs || []).filter(x => x.n || x.o).forEach(x => {
         if (ARCH_DB.find(a => a.n === x.n && a.o === x.o)) return;
@@ -1572,34 +1555,75 @@ document.getElementById('hv-form').addEventListener('keydown', function (e) {
 });
 
 /* ── client / contacts autocomplete (same DB as work order) ── */
-function hvClientInput(val) {
-    const box = document.getElementById('hv-client-ac');
-    const matches = Object.keys(CONTACTS_DB).filter(k => k.includes(val.trim()));
-    if (!val.trim() || !matches.length) { box.style.display = 'none'; return; }
-    box.innerHTML = matches.map(m => '<div class="ac-item">' + m + '</div>').join('');
-    box.style.display = 'block';
-    box.onmousedown = e => {
-        const it = e.target.closest('.ac-item'); if (!it) return;
-        e.preventDefault();
-        document.getElementById('hv-client').value = it.textContent.trim();
-        box.style.display = 'none';
-        hvFillDatalist();
-    };
-    hvFillDatalist();
-}
-function hvFillDatalist() {
-    const list = CONTACTS_DB[v('hv-client')] || [];
-    document.getElementById('hv-ct-list').innerHTML =
-        list.map(c => `<option value="${c.n.replace(/"/g, '&quot;')}">${c.p || ''}</option>`).join('');
-}
-function hvContactPick(i) {
-    const name = v('hv-ct-n-' + i);
-    const c = (CONTACTS_DB[v('hv-client')] || []).find(x => x.n === name);
-    if (c) {
-        document.getElementById('hv-ct-p-' + i).value = c.p || '';
-        document.getElementById('hv-ct-e-' + i).value = c.e || '';
+function hvFillDatalist() {}   // (השלמה אוטומטית עברה לרשימה הנפתחת – hvAC)
+
+/* ── רשימה נפתחת להשלמה אוטומטית בטופס המסירה: לקוח, אנשי קשר, משרד אדריכלים, אדריכל ──
+   חץ למטה/למעלה מסמן, Enter בוחר, Escape סוגר, קליק בוחר. */
+const hvAcBox = document.createElement('div');
+hvAcBox.className = 'ac-box';
+hvAcBox.style.position = 'fixed';
+document.body.appendChild(hvAcBox);
+let hvAcItems = [], hvAcFor = null;
+function hvAcItemsFor(el) {
+    const id = el.id, val = el.value.trim(), m = id.match(/-(\d+)$/), i = m ? +m[1] : 0;
+    const set = (k, x) => { const f = document.getElementById(k); if (f) f.value = x || ''; };
+    if (id === 'hv-client') {
+        if (!val) return [];
+        return Object.keys(CONTACTS_DB).filter(k => k.includes(val)).slice(0, 40)
+            .map(k => ({ label: k, pick: () => set('hv-client', k) }));
     }
+    if (id.startsWith('hv-ct-n-')) {
+        return (CONTACTS_DB[v('hv-client')] || []).filter(c => c.n && c.n.includes(val)).slice(0, 40)
+            .map(c => ({ label: c.n + (c.p ? ' — ' + c.p : ''), pick: () => { set('hv-ct-n-' + i, c.n); set('hv-ct-p-' + i, c.p); set('hv-ct-e-' + i, c.e); } }));
+    }
+    if (id.startsWith('hv-ar-o-')) {
+        return [...new Set(ARCH_DB.map(a => a.o).filter(o => o && o.includes(val)))].slice(0, 40)
+            .map(o => ({ label: o, pick: () => set('hv-ar-o-' + i, o) }));
+    }
+    if (id.startsWith('hv-ar-n-')) {
+        const off = v('hv-ar-o-' + i);
+        return ARCH_DB.filter(a => a.n && a.n.includes(val) && (!off || a.o === off)).slice(0, 40)
+            .map(a => ({ label: a.n + (a.o ? ' — ' + a.o : ''), pick: () => { set('hv-ar-n-' + i, a.n); set('hv-ar-o-' + i, a.o); set('hv-ar-p-' + i, a.p); set('hv-ar-e-' + i, a.e); } }));
+    }
+    return null;
 }
+function hvAcShow(el) {
+    const items = hvAcItemsFor(el);
+    if (items === null) return;
+    hvAcItems = items; hvAcFor = el;
+    if (!items.length) { hvAcBox.style.display = 'none'; return; }
+    hvAcBox.innerHTML = items.map((it, k) => `<div class="ac-item" data-k="${k}">${esc(it.label)}</div>`).join('');
+    const r = el.getBoundingClientRect();
+    Object.assign(hvAcBox.style, { display: 'block', top: (r.bottom + 2) + 'px', left: r.left + 'px', right: 'auto', width: Math.max(r.width, 220) + 'px' });
+}
+function hvAcHide() { hvAcBox.style.display = 'none'; hvAcFor = null; }
+function hvAcPick(k) { const it = hvAcItems[k]; if (it) it.pick(); hvAcHide(); }
+hvAcBox.addEventListener('mousedown', e => {
+    const d = e.target.closest('.ac-item'); if (!d) return;
+    e.preventDefault(); hvAcPick(+d.dataset.k);
+});
+const hvForm = document.getElementById('hv-form');
+hvForm.addEventListener('input', e => { if (e.target.tagName === 'INPUT') hvAcShow(e.target); });
+hvForm.addEventListener('focusout', () => setTimeout(() => { if (!hvForm.contains(document.activeElement) || document.activeElement !== hvAcFor) hvAcHide(); }, 120));
+window.addEventListener('scroll', hvAcHide, true);
+// נרשם בשלב capture – רץ לפני מעבר השדות ב-Enter, כך ש-Enter קודם בוחר ואז עובר לשדה הבא
+hvForm.addEventListener('keydown', e => {
+    if (hvAcBox.style.display !== 'block' || e.target !== hvAcFor) return;
+    const items = hvAcBox.querySelectorAll('.ac-item');
+    const act = hvAcBox.querySelector('.ac-active');
+    let k = act ? +act.dataset.k : -1;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (act) act.classList.remove('ac-active');
+        k = e.key === 'ArrowDown' ? (k + 1) % items.length : (k - 1 + items.length) % items.length;
+        items[k].classList.add('ac-active');
+        items[k].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter' && act) {
+        hvAcPick(k);
+    } else if (e.key === 'Escape') {
+        hvAcHide();
+    }
+}, true);
 
 /* ── sketches ── */
 function hvAddFiles(files) {

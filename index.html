@@ -1451,7 +1451,7 @@ function hvDelArch(i) { hvSyncArchs(); hvArchs.splice(i, 1); hvRenderArchs(); }
 function hvArchOffice() {}   // (השלמה אוטומטית עברה לרשימה הנפתחת – hvAC)
 function saveNewArchitect(d) {
     (d.archs || []).filter(x => x.n || x.o).forEach(x => {
-        if (ARCH_DB.find(a => a.n === x.n && a.o === x.o)) return;
+        if (ARCH_DB.find(a => String(a.n).trim() === x.n.trim() && String(a.o).trim() === x.o.trim())) return;
         ARCH_DB.push({ ...x });
         fetch(SHEETS_API, { method: 'POST', body: JSON.stringify({ type: 'architect', office: x.o, name: x.n, phone: x.p, email: x.e }) })
             .catch(() => toast('⚠ שמירת האדריכל למאגר נכשלה'));
@@ -1761,7 +1761,18 @@ function buildHvPdfHTML() {
       ${imgs.map(s => `<div style="page-break-before:always;">${sec('שרטוט – ' + esc(s.name))}<img src="${s.data}" style="max-width:100%;max-height:900px;display:block;margin:auto;"></div>`).join('')}
     </div>`;
 }
+// שמירת אנשי קשר ואדריכלים חדשים למאגר ב-Google Sheets – בכל יצירת PDF ובכל שליחה במייל (כמו בהזמנת עבודה)
+function hvSavePeople(d) {
+    saveNewArchitect(d);
+    if (!d['hv-client'] || typeof saveNewContact !== 'function') return;
+    const company = typeof resolveCompanyName === 'function' ? resolveCompanyName(d['hv-client']) : d['hv-client'];
+    const norm = typeof normalizeForMatch === 'function' ? normalizeForMatch : (x => String(x || '').trim());
+    d.contacts.filter(c => c.n).forEach(c => {
+        if (!(CONTACTS_DB[company] || []).find(x => norm(x.n) === norm(c.n))) saveNewContact(company, c.n, c.p, c.e);
+    });
+}
 function hvDownloadPDF() {
+    hvSavePeople(hvCollect());
     const win = window.open('', '_blank');
     if (!win) { toast('הדפדפן חסם את החלון – אפשר חלונות קופצים'); return; }
     win.document.write(`<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8"><title>מסירת פרויקט לתכנון ${esc(v('hv-project').replace(/[\\/:*?"<>|]/g, ' '))}</title>
@@ -1818,13 +1829,7 @@ function hvSendEmail() {
     const d = hvCollect();
     if (!d['hv-project'] && !d['hv-client']) { toast('מלא לפחות שם פרויקט או לקוח'); return; }
     if (!d['hv-d-supply']) { toast('⚠ חסר תאריך אספקה'); document.getElementById('hv-d-supply').focus(); return; }
-    saveNewArchitect(d);
-    // שמירת אנשי קשר חדשים למאגר (כמו בהזמנת עבודה)
-    if (d['hv-client'] && typeof saveNewContact === 'function') {
-        d.contacts.filter(c => c.n).forEach(c => {
-            if (!(CONTACTS_DB[d['hv-client']] || []).find(x => x.n === c.n)) saveNewContact(d['hv-client'], c.n, c.p, c.e);
-        });
-    }
+    hvSavePeople(d);
     hvLogSend(d);
     const wn = d['hv-wnum'] ? 'PR' + d['hv-wnum'] : '';
     const subject = `מסירת פרויקט לתכנון – ${d['hv-project'] || ''} – ${d['hv-client'] || ''}${wn ? ' – ' + wn : ''}`;

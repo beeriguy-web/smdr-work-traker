@@ -1364,8 +1364,7 @@ function sendEmail() {
     const subject = encodeURIComponent(
         `הזמנת עבודה – ${v('f-client')} – ${v('f-site') || 'ללא פרויקט'} – ${v('f-wnum') ? 'PR' + v('f-wnum') : ''}`
     );
-    const body = encodeURIComponent(rtlLines(buildEmailBody()));
-    window.location.href = `mailto:gal@smdrtech.co.il?cc=guy@smdrtech.co.il&subject=${subject}&body=${body}`;
+    openMailWithBody(`mailto:gal@smdrtech.co.il?cc=guy@smdrtech.co.il&subject=${subject}`, buildEmailBody());
 }
 </script>
 
@@ -1718,6 +1717,38 @@ function hvDownloadPDF() {
 /* ── Email + log ── */
 // סימן כיוון ימין-לשמאל (RLM) בתחילת כל שורה – כדי שתוכנת המייל תציג את הטקסט מימין לשמאל
 function rtlLines(t) { return String(t).split('\n').map(l => '\u200F' + l).join('\r\n'); }
+
+/* ── מייל: גוף מעוצב (RTL, שורות צמודות) מועתק ללוח, ובמייל לוחצים Ctrl+V ── */
+function mailHtml(text) {
+    const e = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const lines = String(text).split('\n').map(l => {
+        if (!l.trim()) return '<p dir="rtl" style="margin:0;text-align:right;">&nbsp;</p>';
+        const h = e(l).replace(/([\w.+-]+@[\w-]+(\.[\w-]+)+)/g, '<span dir="ltr">$1</span>');
+        return `<p dir="rtl" style="margin:0;text-align:right;">${h}</p>`;
+    });
+    return `<div dir="rtl" style="direction:rtl;text-align:right;font-family:Arial,sans-serif;font-size:11pt;">${lines.join('')}</div>`;
+}
+async function openMailWithBody(mailtoNoBody, text, extraMsg) {
+    let copied = false;
+    try {
+        if (navigator.clipboard && window.ClipboardItem) {
+            await navigator.clipboard.write([new ClipboardItem({
+                'text/html': new Blob([mailHtml(text)], { type: 'text/html' }),
+                'text/plain': new Blob([text], { type: 'text/plain' })
+            })]);
+            copied = true;
+        }
+    } catch (e) { copied = false; }
+    if (copied) {
+        window.location.href = mailtoNoBody;
+        toast('📋 גוף המייל הועתק – לחץ בגוף המייל Ctrl+V' + (extraMsg ? ' · ' + extraMsg : ''));
+    } else {
+        // גיבוי: אם ההעתקה ללוח נכשלה – הטקסט נכנס ישירות למייל כמו קודם
+        window.location.href = mailtoNoBody + '&body=' + encodeURIComponent(rtlLines(text));
+        toast('נפתח מייל לגל' + (extraMsg ? ' · ' + extraMsg : ''));
+    }
+}
+
 // מפריד עם סימני RLM משני הצדדים – כדי שמקף בין עברית לאנגלית/מייל לא יקפוץ למקום אחר בשורה
 const MAIL_SEP = ' \u200F-\u200F ';
 // אנשי קשר לתכתובות בגוף המייל – שם ומייל בלבד (בלי טלפון)
@@ -1753,8 +1784,7 @@ function hvSendEmail() {
 
 בברכה,
 ${d['hv-from']}`;
-    window.location.href = `mailto:${HV_TO}?cc=${encodeURIComponent(HV_CC)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(rtlLines(body))}`;
-    toast('נפתח מייל לגל (עותק אליך) ✓  נרשם בטבלת המעקב');
+    openMailWithBody(`mailto:${HV_TO}?cc=${encodeURIComponent(HV_CC)}&subject=${encodeURIComponent(subject)}`, body, 'נרשם בטבלת המעקב ✓');
 }
 
 function loadLog() { try { return JSON.parse(localStorage.getItem(HV_LOGKEY) || '[]'); } catch (e) { return window._memLog || []; } }

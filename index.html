@@ -1364,7 +1364,7 @@ function sendEmail() {
     const subject = encodeURIComponent(
         `הזמנת עבודה – ${v('f-client')} – ${v('f-site') || 'ללא פרויקט'} – ${v('f-wnum') ? 'PR' + v('f-wnum') : ''}`
     );
-    const body = encodeURIComponent(buildEmailBody());
+    const body = encodeURIComponent(rtlLines(buildEmailBody()));
     window.location.href = `mailto:gal@smdrtech.co.il?cc=guy@smdrtech.co.il&subject=${subject}&body=${body}`;
 }
 </script>
@@ -1716,6 +1716,8 @@ function hvDownloadPDF() {
 }
 
 /* ── Email + log ── */
+// סימן כיוון ימין-לשמאל (RLM) בתחילת כל שורה – כדי שתוכנת המייל תציג את הטקסט מימין לשמאל
+function rtlLines(t) { return String(t).split('\n').map(l => '\u200F' + l).join('\n'); }
 function hvSendEmail() {
     const d = hvCollect();
     if (!d['hv-project'] && !d['hv-client']) { toast('מלא לפחות שם פרויקט או לקוח'); return; }
@@ -1733,18 +1735,16 @@ function hvSendEmail() {
     const body =
 `שלום גל,
 
-מצורף טופס מסירת פרויקט לתכנון (PDF מצורף).
+מצורף טופס מסירת פרויקט לתכנון.
 
 פרויקט / אתר: ${d['hv-project']}
 לקוח: ${d['hv-client']}
 מספר פרויקט: ${wn}
 תאריך אספקה: ${fmtDate(d['hv-d-supply'])}${d.bridges ? '\n' + d.bridges : ''}
 
-אבקש אישור קבלה.
-
 בברכה,
 ${d['hv-from']}`;
-    window.location.href = `mailto:${HV_TO}?cc=${encodeURIComponent(HV_CC)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = `mailto:${HV_TO}?cc=${encodeURIComponent(HV_CC)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(rtlLines(body))}`;
     toast('נפתח מייל לגל (עותק אליך) ✓  נרשם בטבלת המעקב');
 }
 

@@ -488,7 +488,7 @@ function renderSummary(){
  if(R.good.length)h+=`<h3>עבודה טובה</h3><div class="wrap"><table>${head}<tbody>${findingRows(R.good,'good','★ לשבח')}</tbody></table></div>`;
  if(R.ok.length)h+=`<h3>נבדקו ונמצאו תקינים</h3><ul class="oklist">${R.ok.map(r=>`<li>${esc(r.g)} – ${esc(r.t)}</li>`).join('')}</ul>`;
  if(F.general.trim())h+=`<h3>הערות כלליות</h3><div class="gen">${esc(F.general)}</div>`;
- if(R.bad.length)h+=`<p style="font-size:12px;color:#555;margin:14px 0 0">הסעיפים מתייחסים להוראות השימוש והבטיחות של שמדר טכנולוגיות: תבניות מתכת דגם אפולו (גרסה 2.61) ופיגום כבד תלוי (גרסה 2.81). נבקש לטפל בליקויים בהקדם ולעדכן.</p>`;
+ if(R.bad.length)h+=`<p style="font-size:12px;color:#555;margin:14px 0 0">הסעיפים מתייחסים להוראות השימוש והבטיחות של שמדר טכנולוגיות: תבניות מתכת דגם אפולו (גרסה 2.61) ופיגום כבד תלוי (גרסה 2.81). הינכם נדרשים לטפל בליקויים באופן מיידי.</p>`;
  h+=`<div class="ft"><span>${fmtD(today())}</span><span>דוח סיור באתר – ${esc(F.project)}</span></div>`;
  document.getElementById('paper').innerHTML=h;
  const none=!R.bad.length&&!R.good.length&&!R.ok.length;
@@ -503,7 +503,7 @@ function mailText(R){
  const when=F.date===today()?'שנערך היום':'שנערך בתאריך '+fmtD(F.date);
  let t=`שלום רב,\n\nמצורף דוח הסיור באתר ${when}, בנושא ציוד התבניות והפיגום של שמדר.\n`;
  if(R.bad.length){t+=`\nבסיור נמצאו ${R.bad.length===1?'ליקוי אחד שדורש':R.bad.length+' ליקויים שדורשים'} טיפול:\n`+R.bad.map(r=>`${r.n}. ${r.g}: ${(r.note||r.t).replace(/\n/g,' ')}‏`).join('\n')+'\n';
-  t+=`\nנבקש לטפל בליקויים בהקדם. הפירוט והתמונות בדוח המצורף.\n`}
+  t+=`\nהינכם נדרשים לטפל בליקויים באופן מיידי. הפירוט והתמונות בדוח המצורף.\n`}
  else t+=`\nלא נמצאו ליקויים בסיור.\n`;
  if(R.good.length)t+=`\nתודה על העבודה המסודרת – ${R.good.length===1?'סעיף אחד צוין':R.good.length+' סעיפים צוינו'} לשבח בדוח.\n`;
  t+='\n\n';

@@ -307,6 +307,8 @@ let F;           // current visit
 let V=[];        // saved visits (tracker)
 let CL={};       // clients -> contacts (from the Google Sheet)
 let ROLES_DB={};
+let INTERNAL=[]; // Shamadar people (@smdrtech.co.il) – kept on this device only, never written to the Sheet
+const isInternal=c=>/@smdrtech\.co\.il\s*$/i.test(c.m||'');
 let saveT=null;
 function persist(){clearTimeout(saveT);saveT=setTimeout(()=>IDB.set('draft',F),300)}
 function persistV(){return IDB.set('visits',V)}
@@ -336,10 +338,12 @@ function postSheet(o){return fetch(SHEETS_API,{method:'POST',body:JSON.stringify
 function saveContactsToSheet(){
  const co=F.client.trim();if(!co)return;
  F.contacts.forEach(c=>{if(c.r)ROLES_DB[co+'|'+c.n]=c.r;const L=(CL[co]=CL[co]||[]);
+  if(isInternal(c))return; // our own staff are never saved as a client's contact
   if(!L.some(x=>x.n===c.n)){L.push({...c});postSheet({company:co,name:c.n,phone:c.p,email:c.m})}});
  IDB.set('roles',ROLES_DB);
 }
-function allContacts(){return CL[F.client]||Object.values(CL).flat()}
+function allContacts(){const base=CL[F.client]||Object.values(CL).flat();return base.concat(INTERNAL.filter(i=>!base.some(b=>b.n===i.n)))}
+function rememberInternal(c){if(!isInternal(c))return;const i=INTERNAL.findIndex(x=>x.n===c.n);if(i>=0)INTERNAL[i]={...c};else INTERNAL.push({...c});IDB.set('internal',INTERNAL)}
 const ROLES=['מנ"פ','מנ"א','מהנדס ביצוע','מנהל עבודה','ממונה בטיחות','מנכ"ל','אחר'];
 function roleSel(val,on){return `<select ${on}><option value="">תפקיד...</option>`+ROLES.map(r=>`<option ${r===val?'selected':''}>${r}</option>`).join('')+`</select>`}
 function renderContacts(){
@@ -351,14 +355,15 @@ function renderContacts(){
   <button class="x" title="הסר" onclick="F.contacts.splice(${i},1);renderContacts();persist()">✕</button></div>`).join('');
  document.getElementById('ccnt').textContent=F.contacts.length?F.contacts.length+' נמענים':'';
 }
-function edC(i,k,val){F.contacts[i][k]=val;persist()}
+function edC(i,k,val){F.contacts[i][k]=val;if(k==='m')rememberInternal(F.contacts[i]);persist()}
 function addContact(){
  const n=v('nc-name').trim();if(!n){toast('צריך שם');return}
  const ex=allContacts().find(x=>x.n===n);
  const c=ex?{...ex}:{n,r:v('nc-role'),m:v('nc-mail').trim(),p:v('nc-phone').trim()};
  if(!F.contacts.some(x=>x.n===c.n))F.contacts.push(c);
+ rememberInternal(c);
  ['nc-name','nc-mail','nc-phone','nc-role'].forEach(k=>document.getElementById(k).value='');
- renderContacts();persist();toast(ex?'נוסף: '+c.n:'איש קשר חדש - יישמר בגיליון בהפקת PDF / שליחה');
+ renderContacts();persist();toast(ex?'נוסף: '+c.n:isInternal(c)?'נוסף: '+c.n+' (עובד שמדר – לא נשמר בגיליון)':'איש קשר חדש - יישמר בגיליון בהפקת PDF / שליחה');
 }
 
 /* ---------------------------------------------------------------- checklist rendering */
@@ -642,8 +647,8 @@ document.getElementById('general').oninput=e=>{F.general=e.target.value;persist(
 document.getElementById('mdl').onclick=e=>{if(e.target.id==='mdl')closeM()};
 function renderAll(){META.forEach(k=>document.getElementById(k).value=F[k]||'');document.getElementById('vdate').value=F.date;document.getElementById('general').value=F.general||'';renderContacts();renderSections()}
 (async()=>{
- const [d,vs,cl,ro]=await Promise.all([IDB.get('draft'),IDB.get('visits'),IDB.get('clients'),IDB.get('roles')]);
- F=d||blank();V=vs||[];ROLES_DB=ro||{};if(cl&&!Object.keys(CL).length)CL=cl;
+ const [d,vs,cl,ro,inn]=await Promise.all([IDB.get('draft'),IDB.get('visits'),IDB.get('clients'),IDB.get('roles'),IDB.get('internal')]);
+ F=d||blank();V=vs||[];ROLES_DB=ro||{};INTERNAL=inn||[];if(cl&&!Object.keys(CL).length)CL=cl;
  if(!F.id&&!F.project&&!Object.keys(F.it).length)F.date=today();
  renderAll();
  const h=location.hash.replace('#','');if(['form','sum','trk'].includes(h))show(h);

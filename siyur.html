@@ -136,6 +136,12 @@ body:not(.phone) .phone-only{display:none}body.phone .desk-only{display:none}
 .erow .x{border:1px solid #e8b4bd;background:#fff;border-radius:8px;height:38px;cursor:pointer;color:var(--red-d)}
 .erow .rl{font-weight:600;font-size:14px}
 .phrow{display:flex;gap:8px}
+/* inside the main app (iframe): the app's red toolbar already names the form – keep only the small tabs */
+body.embedded header.top{padding:4px 8px;gap:8px;position:sticky}
+body.embedded header.top img,body.embedded header.top h1{display:none}
+body.embedded .tabs{margin:0 auto;gap:3px}body.embedded .tabs button{padding:4px 12px;font-size:13px}
+body.embedded .sticky{top:44px}
+@media(max-width:700px){body.embedded .sticky{top:40px}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -584,7 +590,7 @@ async function buildPdf(){ // -> File
  const name=`דוח סיור באתר - ${(F.project||'פרויקט').replace(/[\\/:*?"<>|]/g,'-')} ${fmtD(F.date)}.pdf`;
  return new File([pdf.output('blob')],name,{type:'application/pdf'});
 }
-const IS_PHONE=/Android|iPhone|iPad/i.test(navigator.userAgent);if(IS_PHONE)document.body.classList.add('phone');
+const IS_PHONE=/Android|iPhone|iPad/i.test(navigator.userAgent);try{if(window.self!==window.top)document.body.classList.add('embedded')}catch(e){document.body.classList.add('embedded')}if(IS_PHONE)document.body.classList.add('phone');
 async function makePdf(){
  const btn=document.getElementById('pdfBtn');btn.disabled=true;const old=btn.textContent;btn.textContent='מפיק PDF...';
  try{

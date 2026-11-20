@@ -124,7 +124,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 @media(max-width:700px){.trk thead{display:none}.trk tr{display:block;border-bottom:2px solid var(--line);padding:6px 0}.trk td{display:block;border:0;padding:3px 10px}}
 .helper{background:#e8f7ee;border:1px solid #9ad3b0;border-radius:12px;padding:10px 14px;max-width:800px;margin:0 auto 12px;font-size:14px}
 .helper .step{display:flex;gap:10px;align-items:flex-start;margin:8px 0}.helper .no{flex:none;width:24px;height:24px;border-radius:50%;background:#198754;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px}
-.helper .step .btn{padding:6px 10px;font-size:13px;margin:4px 0}.helper .addr{font-size:12px;color:#555;word-break:break-all;margin:2px 0}
+.helper .step .btn{padding:6px 10px;font-size:13px;margin:4px 0}.pulse{animation:pl 1s infinite}@keyframes pl{50%{box-shadow:0 0 0 6px rgba(25,135,84,.35)}}
+.helper .addr{font-size:12px;color:#555;word-break:break-all;margin:2px 0}
 .helper ol{margin:6px 0 10px;padding-inline-start:20px}.helper li{margin:3px 0}
 #helpTo{font-weight:600;word-break:break-all}
 body:not(.phone) .phone-only{display:none}body.phone .desk-only{display:none}
@@ -235,14 +236,16 @@ body:not(.phone) .phone-only{display:none}body.phone .desk-only{display:none}
     <span class="note" id="sumNote"></span>
   </div>
   <div id="helper" class="helper" style="display:none">
-    <b>שליחה מהטלפון – 4 הדבקות קצרות</b>
-    <div class="step"><span class="no">1</span><div>בתפריט השיתוף בחר <b>Outlook</b> – הדוח מצורף. בשדה <b>"מאת"</b> בחר את תיבת שמדר.
-      <button class="btn" id="shareAgain" style="display:none;background:#198754" onclick="doShare()">📤 פתח שיתוף</button></div></div>
-    <div class="step"><span class="no">2</span><div>שדה <b>"אל"</b>: לחיצה ארוכה ← הדבק (כבר הועתק).<div class="addr" id="helpTo" dir="ltr"></div>
-      <button class="btn sec" onclick="copyTxt(_share.to,'📋 הנמענים הועתקו')">📋 העתק נמענים שוב</button></div></div>
-    <div class="step"><span class="no">3</span><div>חזור לכאן ← <button class="btn sec" onclick="copyTxt(ccList(),'📋 המכותבים הועתקו')">📋 העתק מכותבים</button> ← ב-Outlook פתח את השדות (החץ ליד "אל") והדבק בשדה <b>"עותק"</b>.<div class="addr" id="helpCc" dir="ltr"></div></div></div>
-    <div class="step"><span class="no">4</span><div>חזור לכאן ← <button class="btn sec" onclick="copyTxt(_share.body,'📋 נוסח המייל הועתק')">📋 העתק נוסח</button> ← הדבק בגוף המייל, ושלח.</div></div>
-    <div class="note" style="margin:8px 0 0">✍️ חתימה: Outlook בטלפון מוסיף חתימה משלו – מגדירים אותה פעם אחת ב-Outlook: הגדרות ← חתימה. &nbsp; <button class="btn sec" onclick="doShare()">↻ שתף את הדוח שוב</button></div>
+    <b>הדוח נשמר בטלפון, ו-Outlook נפתח עם הנמענים, העותק, הנושא והנוסח</b>
+    <div class="step"><span class="no">1</span><div>בשדה <b>"מאת"</b> בחר את תיבת שמדר.</div></div>
+    <div class="step"><span class="no">2</span><div>לחץ <b>📎 צרף</b> ← בחר קובץ ← הקובץ האחרון בהורדות:<div class="addr" id="helpFile"></div></div></div>
+    <div class="step"><span class="no">3</span><div>בדוק ושלח.</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+      <button class="btn" id="openMailBtn" style="background:#198754" onclick="openMail()">✉ פתח מייל</button>
+      <button class="btn sec" onclick="savePdf(_share.file)">⬇ שמור PDF שוב</button>
+      <button class="btn sec" onclick="doShare()">📤 שתף PDF (וואטסאפ וכו')</button>
+    </div>
+    <div class="note" style="margin:8px 0 0">✍️ חתימה: Outlook בטלפון מוסיף חתימה משלו – מגדירים אותה פעם אחת ב-Outlook: הגדרות ← חתימה.<br>אם נפתחת אפליקציה אחרת: בהגדרות הטלפון ← אפליקציות ← אפליקציות ברירת מחדל ← מייל ← Outlook.</div>
   </div>
   <div class="paper" id="paper"></div>
   <div class="mail" id="mailBox"></div>
@@ -337,7 +340,8 @@ let ROLES_DB={};
 let INTERNAL=[]; // Shamadar people (@smdrtech.co.il) – kept on this device only, never written to the Sheet
 const isInternal=c=>/@smdrtech\.co\.il\s*$/i.test(c.m||'');
 let saveT=null;
-function persist(){clearTimeout(saveT);saveT=setTimeout(()=>IDB.set('draft',F),300)}
+let VER=0;
+function persist(){VER++;clearTimeout(saveT);saveT=setTimeout(()=>IDB.set('draft',F),300)}
 function persistV(){return IDB.set('visits',V)}
 
 function blank(){return{id:null,client:'',project:'',job:'',date:today(),stage:'',contacts:[],cc:[],escorts:[],it:{},extra:[],free:[],general:'',status:'draft'}}
@@ -350,7 +354,7 @@ function v(id){return document.getElementById(id).value}
 function show(name){
  document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+name));
  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===name));
- if(name==='sum')renderSummary();if(name==='trk')renderTrk();
+ if(name==='sum'){renderSummary();if(IS_PHONE)prebuild()}if(name==='trk')renderTrk();
  if(location.hash!=='#'+name)history.replaceState(null,'','#'+name);scrollTo(0,0);
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.v));
@@ -602,35 +606,44 @@ async function copyTxt(t,msg){
  try{await navigator.clipboard.writeText(t);toast(msg);return true}
  catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(x){}ta.remove();toast(ok?msg:'ההעתקה נחסמה – סמן והעתק ידנית');return ok}
 }
+/* phone flow: the PDF is saved to the phone and Outlook opens through a mail link with To / CC / subject / text already in it.
+   He only picks the Shamadar mailbox in "From" and attaches the PDF (📎 → recent files). */
+let _pdf=null,_building=null; // _pdf={file,ver}
+function prebuild(){ // build the PDF in the background while he looks at the report, so the send tap is instant
+ if(_pdf&&_pdf.ver===VER)return _building||Promise.resolve(_pdf.file);
+ const ver=VER;
+ _building=new Promise(r=>setTimeout(r,250)).then(buildPdf).then(f=>{_pdf={file:f,ver};_building=null;return f}).catch(e=>{_building=null;throw e});
+ return _building;
+}
+function savePdf(file){const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=file.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
+function mailLink(){
+ const M=window._mail;
+ return `mailto:${F.contacts.map(c=>c.m).filter(Boolean).join(',')}?cc=${encodeURIComponent(ccList().replace(/, /g,','))}&subject=${encodeURIComponent(M.subj)}&body=${encodeURIComponent(rtlLines(M.body))}`;
+}
+function openMail(){window.top.location.href=mailLink()}
 async function sendReport(){
- const to=toList();
- if(!to){toast('⚠ לא נבחרו נמענים עם מייל – בחר ב"נמעני הדוח"');show('form');document.getElementById('c-contacts').classList.remove('closed');return}
- await copyTxt(to,'📋 כתובות הנמענים הועתקו');            // copied first, while the tap is still "fresh"
+ if(!toList()){toast('⚠ לא נבחרו נמענים עם מייל – בחר ב"נמעני הדוח"');show('form');document.getElementById('c-contacts').classList.remove('closed');return}
  const btn=document.getElementById('shareBtn');btn.disabled=true;const old=btn.textContent;btn.textContent='מכין את הדוח...';
  try{
+  renderSummary();
+  const fresh=!!(_pdf&&_pdf.ver===VER&&!_building);
+  const file=fresh?_pdf.file:await prebuild();
   saveVisit('sent');saveContactsToSheet();
-  const file=await buildPdf();const M=window._mail;
-  _share={file,subj:M.subj,body:rtlLines(M.body).replace(/\r\n/g,'\n'),to};
-  showHelper();
-  await doShare();
+  _share={file};showHelper();
+  savePdf(file);                                   // 1. PDF → the phone's Downloads
+  if(fresh)setTimeout(openMail,600);               // 2. Outlook with everything filled in
+  else{document.getElementById('openMailBtn').classList.add('pulse');toast('הדוח נשמר ✓ – לחץ "✉ פתח מייל"')}  // took too long for the browser to count it as the same tap
  }catch(e){toast('שגיאה בהכנת הדוח: '+(e.message||e))}
  finally{btn.disabled=false;btn.textContent=old}
 }
-async function doShare(){
+async function doShare(){ // optional: WhatsApp etc.
  if(!_share)return;
- const data={files:[_share.file]}; // file only: with extra text Outlook (Android) dropped the attachment; the text is pasted from the helper bar
- if(!(navigator.canShare&&navigator.canShare({files:[_share.file]}))){toast('המכשיר לא תומך בשיתוף קובץ – ה-PDF יורד');const a=document.createElement('a');a.href=URL.createObjectURL(_share.file);a.download=_share.file.name;a.click();return}
- try{await navigator.share(data);toast('בשדה "אל" – לחיצה ארוכה ← הדבק')}
- catch(e){
-  if(e&&e.name==='AbortError')return;
-  // the PDF took too long and the browser no longer counts it as the user's tap -> one more tap
-  document.getElementById('shareAgain').style.display='';toast('הדוח מוכן – לחץ "📤 פתח שיתוף"');
- }
+ if(!(navigator.canShare&&navigator.canShare({files:[_share.file]}))){savePdf(_share.file);return}
+ try{await navigator.share({files:[_share.file]})}catch(e){}
 }
 function showHelper(){
  const h=document.getElementById('helper');h.style.display='';
- document.getElementById('shareAgain').style.display='none';
- document.getElementById('helpTo').textContent=_share.to;document.getElementById('helpCc').textContent=ccList();
+ document.getElementById('helpFile').textContent=_share.file.name;
 }
 
 

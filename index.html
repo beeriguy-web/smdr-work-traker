@@ -632,7 +632,7 @@
     </div>
 </div>
 <div class="hidden-view" id="wt-view" style="max-width:1300px;margin:16px auto 0;"><iframe id="wt-frame" title="מעקב עבודות" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#f4f6fa;" src="https://beeriguy-web.github.io/work-traker/"></iframe></div>
-<div class="hidden-view" id="hr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="hr-frame" title="ישיבת היערכות לתכנון" allow="clipboard-write" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="hiarchut.html?v=20261120g"></iframe></div>
+<div class="hidden-view" id="hr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="hr-frame" title="ישיבת היערכות לתכנון" allow="clipboard-write" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="hiarchut.html?v=20261120h"></iframe></div>
 
 <!-- ════ TOAST ════ -->
 <div class="toast-msg" id="toast"></div>
@@ -1976,7 +1976,7 @@ function actEmail() {
     if (currentView === 'hr') {   // ישיבת היערכות: גוף המייל נבנה בטופס ומועתק ללוח מכאן (כמו בשאר הטפסים)
         const w = hrWin(); if (!w || !w.prepareMail) return;
         const m = w.prepareMail(); if (!m) return;
-        openMailWithBody(`mailto:${m.to}?cc=guy@smdrtech.co.il&subject=${encodeURIComponent(m.subj)}`, m.body, 'צרף את קובץ ה-PDF');
+        openMailWithBody(`mailto:${m.to}?cc=guy@smdrtech.co.il&subject=${encodeURIComponent(m.subj)}`, m.body, 'בשדה "מאת" בחר smdr.tech@smdrtech.co.il וצרף את ה-PDF');
         return;
     }
     currentView === 'hv' ? hvSendEmail() : sendEmail();

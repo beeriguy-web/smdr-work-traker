@@ -635,7 +635,7 @@ function prepareMail(){saveMeeting(true);markSent();saveContactsToSheet();render
 function sendMail(){
  saveMeeting(true);markSent();saveContactsToSheet();renderSummary();
  const M=window._mail;const to=F.contacts.map(c=>c.m).filter(Boolean).join(';');
- openMailWithBody(`mailto:${to}?cc=guy@smdrtech.co.il&subject=${encodeURIComponent(M.subj)}`,M.body,'צרף את קובץ ה-PDF');
+ openMailWithBody(`mailto:${to}?cc=guy@smdrtech.co.il&subject=${encodeURIComponent(M.subj)}`,M.body,'בשדה "מאת" בחר smdr.tech@smdrtech.co.il וצרף את ה-PDF');
 }
 function copyMail(){const t=window._mail.body;navigator.clipboard.writeText(t).then(()=>toast('נוסח המייל הועתק ✓'),()=>toast('ההעתקה נחסמה - סמן והעתק ידנית'))}
 function saveMeeting(quiet){

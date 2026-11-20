@@ -113,7 +113,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 .paper .gen{white-space:pre-line;font-size:13.5px;border:1px solid #ead6d6;border-radius:8px;padding:10px 12px}
 .paper .sign{margin:22px 0 0;width:240px;margin-inline-start:auto;text-align:center;font-size:13px;line-height:1.5;break-inside:avoid}
 .paper .sign b{font-size:15px}
-.paper .sign img{width:200px;display:block;margin:4px auto 0}
+.paper .sign img{width:200px;display:block;margin:-20px auto 0;position:relative;left:36px} /* stamp sits left/low inside the image – centre it under the name */
+.paper .copies{font-size:12px;color:#555;margin-top:6px}
 .paper .ft{display:flex;justify-content:space-between;font-size:11px;color:#777;margin-top:14px}
 .mail{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;max-width:800px;margin:12px auto}
 .mail pre{white-space:pre-wrap;font-family:inherit;margin:6px 0 0;font-size:14px}
@@ -177,7 +178,21 @@ body:not(.phone) .phone-only{display:none}body.phone .desk-only{display:none}
         <select id="nc-role"><option value="">תפקיד...</option><option>מנ"פ</option><option>מנ"א</option><option>מהנדס ביצוע</option><option>מנהל עבודה</option><option>ממונה בטיחות</option><option>מנכ"ל</option><option>אחר</option></select>
         <input id="nc-mail" placeholder="מייל" inputmode="email" dir="ltr">
         <input id="nc-phone" placeholder="טלפון" dir="ltr">
-        <button class="btn sec" onclick="addContact()">+ הוסף</button>
+        <button class="btn sec" onclick="addContact('contacts')">+ הוסף</button>
+      </div>
+
+  <div class="card closed" id="c-cc">
+    <h2 onclick="tog(this)"><span class="chev">◀</span>מכותבים לידיעה<span class="cnt" id="cccnt"></span></h2>
+    <div class="body">
+      <div class="note">מקבלים העתק של הדוח לידיעה (CC) – למשל מנהל רכש או לוגיסטיקה במשרדי הלקוח. בחר מאנשי הקשר של הלקוח, או מלא פרטים ולחץ "הוסף".</div>
+      <div class="crow head"><span>שם</span><span>תפקיד</span><span>מייל</span><span>טלפון</span><span></span></div>
+      <div id="ccRows"></div>
+      <div class="addbox">
+        <span class="combo"><input id="cc-name" placeholder="שם איש קשר" autocomplete="off"><button type="button" class="arr" tabindex="-1">▼</button><span class="combo-list"></span></span>
+        <select id="cc-role"><option value="">תפקיד...</option><option>מנ"פ</option><option>מנ"א</option><option>מהנדס ביצוע</option><option>מנהל עבודה</option><option>ממונה בטיחות</option><option>מנהל רכש</option><option>לוגיסטיקה</option><option>מנכ"ל</option><option>אחר</option></select>
+        <input id="cc-mail" placeholder="מייל" inputmode="email" dir="ltr">
+        <input id="cc-phone" placeholder="טלפון" dir="ltr">
+        <button class="btn sec" onclick="addContact('cc')">+ הוסף</button>
       </div>
     </div>
   </div>
@@ -220,6 +235,7 @@ body:not(.phone) .phone-only{display:none}body.phone .desk-only{display:none}
     <ol>
       <li>בתפריט השיתוף בחר <b>Outlook</b>, ובשדה "מאת" בחר את תיבת שמדר.</li>
       <li>בשדה "אל" – לחיצה ארוכה ← <b>הדבק</b>. הכתובות כבר הועתקו: <span id="helpTo" dir="ltr"></span></li>
+      <li>אם יש מכותבים לידיעה – לחץ "העתק מכותבים (CC)" והדבק בשדה "עותק".</li>
       <li>אם גוף המייל ריק – חזור לכאן, לחץ "העתק נוסח" והדבק בגוף המייל.</li>
       <li>אפשר לגעת בקובץ המצורף כדי לבדוק אותו לפני השליחה.</li>
     </ol>
@@ -227,7 +243,7 @@ body:not(.phone) .phone-only{display:none}body.phone .desk-only{display:none}
       <button class="btn" id="shareAgain" style="display:none;background:#198754" onclick="doShare()">📤 פתח שיתוף</button>
       <button class="btn sec" onclick="copyTxt(_share.to,'📋 כתובות הנמענים הועתקו')">📋 העתק נמענים</button>
       <button class="btn sec" onclick="copyTxt(_share.body,'📋 נוסח המייל הועתק')">📋 העתק נוסח</button>
-      <button class="btn sec" onclick="copyTxt(MAIL_CC,'📋 '+MAIL_CC+' הועתק')">📋 העתק כתובת להעתק (CC)</button>
+      <button class="btn sec" onclick="copyTxt(ccList(),'📋 כתובות העתק (CC) הועתקו')">📋 העתק מכותבים (CC)</button>
       <button class="btn sec" onclick="doShare()">↻ שתף שוב</button>
     </div>
   </div>
@@ -327,7 +343,7 @@ let saveT=null;
 function persist(){clearTimeout(saveT);saveT=setTimeout(()=>IDB.set('draft',F),300)}
 function persistV(){return IDB.set('visits',V)}
 
-function blank(){return{id:null,client:'',project:'',job:'',date:today(),stage:'',contacts:[],escorts:[],it:{},extra:[],free:[],general:'',status:'draft'}}
+function blank(){return{id:null,client:'',project:'',job:'',date:today(),stage:'',contacts:[],cc:[],escorts:[],it:{},extra:[],free:[],general:'',status:'draft'}}
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function fmtD(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return `${+d}.${+m}.${y.slice(2)}`}
@@ -351,7 +367,7 @@ fetch(SHEETS_API).then(r=>{if(!r.ok)throw 0;return r.json()}).then(rows=>{
 function postSheet(o){return fetch(SHEETS_API,{method:'POST',body:JSON.stringify(o)}).then(r=>{if(!r.ok)throw 0}).catch(()=>toast('⚠ השמירה לגיליון נכשלה - בדוק את הגיליון'))}
 function saveContactsToSheet(){
  const co=F.client.trim();if(!co)return;
- F.contacts.forEach(c=>{if(c.r)ROLES_DB[co+'|'+c.n]=c.r;const L=(CL[co]=CL[co]||[]);
+ F.contacts.concat(F.cc||[]).forEach(c=>{if(c.r)ROLES_DB[co+'|'+c.n]=c.r;const L=(CL[co]=CL[co]||[]);
   if(isInternal(c))return; // our own staff are never saved as a client's contact
   if(!L.some(x=>x.n===c.n)){L.push({...c});postSheet({company:co,name:c.n,phone:c.p,email:c.m})}});
  IDB.set('roles',ROLES_DB);
@@ -360,23 +376,27 @@ function allContacts(){const base=CL[F.client]||Object.values(CL).flat();return 
 function rememberInternal(c){if(!isInternal(c))return;const i=INTERNAL.findIndex(x=>x.n===c.n);if(i>=0)INTERNAL[i]={...c};else INTERNAL.push({...c});IDB.set('internal',INTERNAL)}
 const ROLES=['מנ"פ','מנ"א','מהנדס ביצוע','מנהל עבודה','ממונה בטיחות','מנכ"ל','אחר'];
 function roleSel(val,on){return `<select ${on}><option value="">תפקיד...</option>`+ROLES.map(r=>`<option ${r===val?'selected':''}>${r}</option>`).join('')+`</select>`}
-function renderContacts(){
- document.getElementById('contactRows').innerHTML=F.contacts.map((c,i)=>`<div class="crow">
-  <input value="${esc(c.n)}" oninput="edC(${i},'n',this.value)">
-  ${roleSel(c.r,`onchange="edC(${i},'r',this.value)"`)}
-  <input value="${esc(c.m)}" dir="ltr" inputmode="email" placeholder="מייל" oninput="edC(${i},'m',this.value)">
-  <input value="${esc(c.p)}" dir="ltr" placeholder="טלפון" oninput="edC(${i},'p',this.value)">
-  <button class="x" title="הסר" onclick="F.contacts.splice(${i},1);renderContacts();persist()">✕</button></div>`).join('');
- document.getElementById('ccnt').textContent=F.contacts.length?F.contacts.length+' נמענים':'';
+const LISTS={contacts:{rows:'contactRows',cnt:'ccnt',pre:'nc',word:'נמענים'},cc:{rows:'ccRows',cnt:'cccnt',pre:'cc',word:'לידיעה'}};
+function renderContacts(){Object.keys(LISTS).forEach(renderList);updEscList()}
+function renderList(L){
+ const D=LISTS[L];F[L]=F[L]||[];
+ document.getElementById(D.rows).innerHTML=F[L].map((c,i)=>`<div class="crow">
+  <input value="${esc(c.n)}" oninput="edC('${L}',${i},'n',this.value)">
+  ${roleSel(c.r,`onchange="edC('${L}',${i},'r',this.value)"`)}
+  <input value="${esc(c.m)}" dir="ltr" inputmode="email" placeholder="מייל" oninput="edC('${L}',${i},'m',this.value)">
+  <input value="${esc(c.p)}" dir="ltr" placeholder="טלפון" oninput="edC('${L}',${i},'p',this.value)">
+  <button class="x" title="הסר" onclick="F['${L}'].splice(${i},1);renderContacts();persist()">✕</button></div>`).join('');
+ document.getElementById(D.cnt).textContent=F[L].length?F[L].length+' '+D.word:'';
 }
-function edC(i,k,val){F.contacts[i][k]=val;if(k==='m')rememberInternal(F.contacts[i]);persist()}
-function addContact(){
- const n=v('nc-name').trim();if(!n){toast('צריך שם');return}
+function edC(L,i,k,val){F[L][i][k]=val;if(k==='m')rememberInternal(F[L][i]);persist()}
+function inAny(n){return F.contacts.some(x=>x.n===n)||(F.cc||[]).some(x=>x.n===n)}
+function addContact(L){
+ const pre=LISTS[L].pre;const n=v(pre+'-name').trim();if(!n){toast('צריך שם');return}
  const ex=allContacts().find(x=>x.n===n);
- const c=ex?{...ex}:{n,r:v('nc-role'),m:v('nc-mail').trim(),p:v('nc-phone').trim()};
- if(!F.contacts.some(x=>x.n===c.n))F.contacts.push(c);
+ const c=ex?{...ex}:{n,r:v(pre+'-role'),m:v(pre+'-mail').trim(),p:v(pre+'-phone').trim()};
+ if(!inAny(c.n))F[L].push(c);
  rememberInternal(c);
- ['nc-name','nc-mail','nc-phone','nc-role'].forEach(k=>document.getElementById(k).value='');
+ ['name','mail','phone','role'].forEach(k=>document.getElementById(pre+'-'+k).value='');
  renderContacts();persist();toast(ex?'נוסף: '+c.n:isInternal(c)?'נוסף: '+c.n+' (עובד שמדר – לא נשמר בגיליון)':'איש קשר חדש - יישמר בגיליון בהפקת PDF / שליחה');
 }
 
@@ -504,14 +524,16 @@ function renderSummary(){
  if(R.ok.length)h+=`<h3>נבדקו ונמצאו תקינים</h3><ul class="oklist">${R.ok.map(r=>`<li>${esc(r.g)} – ${esc(r.t)}</li>`).join('')}</ul>`;
  if(F.general.trim())h+=`<h3>הערות כלליות</h3><div class="gen">${esc(F.general)}</div>`;
  if(R.bad.length)h+=`<p style="font-size:12px;color:#555;margin:14px 0 0">הסעיפים מתייחסים להוראות השימוש והבטיחות של שמדר טכנולוגיות: תבניות מתכת דגם אפולו (גרסה 2.61) ופיגום כבד תלוי (גרסה 2.81). הינכם נדרשים לטפל בליקויים באופן מיידי.</p>`;
- h+=`<div class="sign"><div>עורך הסיור והדוח:</div><b>גיא בארי</b><div>שמדר טכנולוגיות בע"מ</div><img src="${SIG}"></div>`;
+ h+=`<div class="sign"><b>גיא בארי</b><img src="${SIG}"></div>`;
+ const ccN=(F.cc||[]).filter(c=>c.n.trim());
+ if(ccN.length)h+=`<div class="copies"><b>העתק לידיעה:</b> ${ccN.map(c=>esc(c.n)+(c.r?' – '+esc(c.r):'')).join(', ')}</div>`;
  h+=`<div class="ft"><span>${fmtD(today())}</span><span>דוח סיור באתר – ${esc(F.project)}</span></div>`;
  document.getElementById('paper').innerHTML=h;
  const none=!R.bad.length&&!R.good.length&&!R.ok.length;
  document.getElementById('sumNote').textContent=none?'⚠️ עדיין לא סומן אף סעיף בטופס.':'';
  const M=mailText(R);window._mail=M;
  const to=F.contacts.map(c=>c.m).filter(Boolean);
- document.getElementById('mailBox').innerHTML=`<b>טיוטת מייל</b><div class="note" dir="ltr" style="text-align:right">אל: ${esc(to.join('; '))||'(בחר נמענים)'} · העתק: ${MAIL_CC}</div><div class="note">נושא: ${esc(M.subj)}</div><pre>${esc(M.body)}</pre>`;
+ document.getElementById('mailBox').innerHTML=`<b>טיוטת מייל</b><div class="note" dir="ltr" style="text-align:right">אל: ${esc(to.join('; '))||'(בחר נמענים)'} · העתק: ${esc(ccList())}</div><div class="note">נושא: ${esc(M.subj)}</div><pre>${esc(M.body)}</pre>`;
 }
 const MAIL_SEP=' ‏-‏ ';
 function mailText(R){
@@ -537,7 +559,7 @@ async function openMailWithBody(mailtoNoBody,text,extraMsg){
  else{window.top.location.href=mailtoNoBody+'&body='+encodeURIComponent(rtlLines(text));toast('נפתח מייל'+(extraMsg?' · '+extraMsg:''))}
 }
 function prepareMail(){saveVisit('sent');saveContactsToSheet();renderSummary();show('sum');const M=window._mail;return{to:F.contacts.map(c=>c.m).filter(Boolean).join(';'),subj:M.subj,body:M.body}}
-function sendMail(){const m=prepareMail();openMailWithBody(`mailto:${m.to}?cc=${MAIL_CC}&subject=${encodeURIComponent(m.subj)}`,m.body,'צרף את קובץ ה-PDF')}
+function sendMail(){const m=prepareMail();openMailWithBody(`mailto:${m.to}?cc=${ccList().replace(/; /g,';')}&subject=${encodeURIComponent(m.subj)}`,m.body,'צרף את קובץ ה-PDF')}
 
 async function buildPdf(){ // -> File
  renderSummary();
@@ -546,7 +568,7 @@ async function buildPdf(){ // -> File
  const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'a4',compress:true});
  const pw=210,ph=297,mg=8;const imgW=pw-2*mg;const pxPerMm=cv.width/imgW;const pageH=(ph-2*mg)*pxPerMm;
  const top=el.getBoundingClientRect().top;
- const brk=[...el.querySelectorAll('tr,.title,.info,.kpi,h3,li,.gen,.lh,.oklist,.wrap,.sign,p')].map(r=>(r.getBoundingClientRect().bottom-top)*scale);
+ const brk=[...el.querySelectorAll('tr,.title,.info,.kpi,h3,li,.gen,.lh,.oklist,.wrap,.sign,.copies,p')].map(r=>(r.getBoundingClientRect().bottom-top)*scale);
  const lgW=110,lgH=lgW*82/576,lgTop=6,off=lgTop+lgH+4;
  let y=0,first=true;
  while(y<cv.height-2){
@@ -578,6 +600,7 @@ async function makePdf(){
 /* ---- phone: "שלח דוח" = recipients copied + share sheet with the PDF and the mail text -> Outlook (sent from the Shamadar mailbox) */
 let _share=null; // {file,subj,body,to}
 function toList(){return F.contacts.map(c=>c.m).filter(Boolean).join('; ')}
+function ccList(){return (F.cc||[]).map(c=>c.m).filter(Boolean).concat(MAIL_CC).join('; ')}
 async function copyTxt(t,msg){
  try{await navigator.clipboard.writeText(t);toast(msg);return true}
  catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(x){}ta.remove();toast(ok?msg:'ההעתקה נחסמה – סמן והעתק ידנית');return ok}
@@ -652,8 +675,9 @@ function combo(id,items,pick){
   else if(e.key==='Enter'&&hl>=0){e.preventDefault();pick(cur[hl]);close()}
   else if(e.key==='Escape')close()});
 }
-combo('client',()=>Object.keys(CL).map(c=>({l:c})),x=>{const el=document.getElementById('client');el.value=x.l;F.client=x.l;persist();el.blur()});
-combo('nc-name',()=>allContacts().filter(c=>!F.contacts.some(x=>x.n===c.n)).map(c=>({l:c.n,s:[c.r,c.p].filter(Boolean).join(' · '),c})),x=>{F.contacts.push({...x.c});document.getElementById('nc-name').value='';renderContacts();persist();toast('נוסף: '+x.c.n)});
+combo('client',()=>Object.keys(CL).map(c=>({l:c})),x=>{const el=document.getElementById('client');el.value=x.l;F.client=x.l;updEscList();persist();el.blur()});
+['contacts','cc'].forEach(L=>{const id=LISTS[L].pre+'-name';
+ combo(id,()=>allContacts().filter(c=>!inAny(c.n)).map(c=>({l:c.n,s:[c.r,c.p].filter(Boolean).join(' · '),c})),x=>{F[L].push({...x.c});document.getElementById(id).value='';renderContacts();persist();toast('נוסף: '+x.c.n)})});
 
 
 /* ---- project number: type 2699 -> PR26-99 */
@@ -661,16 +685,17 @@ const jobEl=document.getElementById('job');
 function fmtJob(v){const d=String(v).replace(/\D/g,'').slice(0,4);return d.length>2?d.slice(0,2)+'-'+d.slice(2):d}
 jobEl.oninput=()=>{const f=fmtJob(jobEl.value);jobEl.value=f;F.job=f?'PR'+f:'';persist()};
 /* ---- escorts: pick a role, then type the name */
-const ESC=['מנהל עבודה','מהנדס ביצוע','מנהל פרויקט','אחר'];
+const ESC=['מנהל פרויקט','מנהל עבודה','מהנדס ביצוע','ממונה / עוזר בטיחות','אחר'];
 function renderEsc(){
  document.getElementById('escAdd').innerHTML=ESC.map(r=>`<button type="button" class="chip" onclick="addEsc('${r}')">+ ${r}</button>`).join('');
  document.getElementById('escRows').innerHTML=F.escorts.map((e,i)=>`<div class="erow">
   ${e.other?`<input placeholder="תפקיד" value="${esc(e.r)}" oninput="F.escorts[${i}].r=this.value;persist()">`:`<span class="rl">${esc(e.r)}</span>`}
-  <input placeholder="שם" value="${esc(e.n)}" oninput="F.escorts[${i}].n=this.value;persist()">
+  <input placeholder="שם" list="escList" value="${esc(e.n)}" oninput="F.escorts[${i}].n=this.value;persist()">
   <button class="x" onclick="F.escorts.splice(${i},1);renderEsc();persist()">✕</button></div>`).join('');
 }
 function addEsc(r){const other=r==='אחר';F.escorts.push({r:other?'':r,n:'',other});renderEsc();persist();
  const rows=document.querySelectorAll('#escRows .erow');const last=rows[rows.length-1];if(last)last.querySelector('input').focus()}
+function updEscList(){let d=document.getElementById('escList');if(!d){d=document.createElement('datalist');d.id='escList';document.body.appendChild(d)}d.innerHTML=(CL[F.client]||[]).map(c=>`<option value="${esc(c.n)}">`).join('')}
 function escText(){return (F.escorts||[]).filter(e=>e.n.trim()||e.r.trim()).map(e=>[e.r,e.n].filter(x=>x.trim()).join(' – ')).join(', ')}
 
 /* ---------------------------------------------------------------- init */
@@ -683,6 +708,7 @@ function renderAll(){META.forEach(k=>document.getElementById(k).value=F[k]||'');
 (async()=>{
  const [d,vs,cl,ro,inn]=await Promise.all([IDB.get('draft'),IDB.get('visits'),IDB.get('clients'),IDB.get('roles'),IDB.get('internal')]);
  F=d||blank();V=vs||[];ROLES_DB=ro||{};INTERNAL=inn||[];if(cl&&!Object.keys(CL).length)CL=cl;
+ if(!F.cc)F.cc=[];
  if(!F.escorts)F.escorts=F.escort?[{r:'',n:F.escort,other:true}]:[];delete F.escort;
  if(!F.id)F.date=today(); // a visit's date = the day the form is opened (saved reports keep theirs)
  renderAll();

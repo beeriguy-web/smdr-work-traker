@@ -631,9 +631,9 @@ async function makePdf(){
  }catch(e){toast(e&&e.code==='declined'?'ההורדה בוטלה':'שגיאה בהפקת PDF: '+(e.message||e.code||e))}
  finally{btn.disabled=false;btn.textContent=old}
 }
-function prepareMail(){saveMeeting(true);saveContactsToSheet();renderSummary();show('sum');const M=window._mail;return {to:F.contacts.map(c=>c.m).filter(Boolean).join(';'),subj:M.subj,body:M.body}}
+function prepareMail(){saveMeeting(true);markSent();saveContactsToSheet();renderSummary();show('sum');const M=window._mail;return {to:F.contacts.map(c=>c.m).filter(Boolean).join(';'),subj:M.subj,body:M.body}}
 function sendMail(){
- saveMeeting(true);saveContactsToSheet();renderSummary();
+ saveMeeting(true);markSent();saveContactsToSheet();renderSummary();
  const M=window._mail;const to=F.contacts.map(c=>c.m).filter(Boolean).join(';');
  openMailWithBody(`mailto:${to}?cc=guy@smdrtech.co.il&subject=${encodeURIComponent(M.subj)}`,M.body,'צרף את קובץ ה-PDF');
 }
@@ -642,19 +642,23 @@ function saveMeeting(quiet){
  const R=rows();const snap={date:today(),rows:R,state:JSON.parse(JSON.stringify(F))};
  let m=F.editOf&&DB.meetings.find(x=>x.id===F.editOf);
  if(m&&F._savedEd===F.edition&&m.editions.length>=F.edition){m.editions[F.edition-1]=snap}
- else if(m){m.editions.push(snap);if(!quiet)toast(`נשמרה מהדורה ${m.editions.length} ✓`)}
- else{m={id:'m'+Date.now(),project:F.project||'ללא שם',client:F.client,mdate:F.date,editions:[snap]};DB.meetings.unshift(m);if(!quiet)toast('הסיכום נשמר במעקב ✓')}
+ else if(m){m.editions.push(snap);m.status='draft';if(!quiet)toast(`נשמרה מהדורה ${m.editions.length} ✓`)}
+ else{m={id:'m'+Date.now(),project:F.project||'ללא שם',client:F.client,mdate:F.date,editions:[snap],status:'draft'};DB.meetings.unshift(m);if(!quiet)toast('הסיכום נשמר במעקב ✓')}
+ m.project=F.project||m.project;m.client=F.client;m.mdate=F.date;
  F.editOf=m.id;F.edition=m.editions.length;F._savedEd=F.edition;persist();
 }
+function markSent(){const m=DB.meetings.find(x=>x.id===F.editOf);if(m){m.status='sent';persist()}}
 /* ---------------------------------------------------------------- tracker */
+const STATUS={draft:{t:'טיוטה',bg:'#fff3cd',c:'#856404'},sent:{t:'נשלח ללקוח',bg:'#e3f4ea',c:'#1e7a46'},cancelled:{t:'מבוטל',bg:'#e9ecef',c:'#6b7280'}};
+function stOf(m){return m.status||(m.cancelled?'cancelled':'draft')}
 function renderTrk(){
  const b=document.getElementById('trkBody');
- const list=DB.meetings.filter(m=>!m.cancelled).concat(DB.meetings.filter(m=>m.cancelled)); // cancelled always at the bottom
- b.innerHTML=list.length?list.map(m=>{const e=m.editions[m.editions.length-1];const w=e.rows.filter(r=>r.w).length;const c=m.cancelled;
-  const st=c?'<span class="pill" style="background:#e9ecef;color:#6b7280;font-weight:600">מבוטל</span>':'<span class="pill" style="background:#e3f4ea;color:#1e7a46">פעיל</span>';
-  return `<tr style="${c?'opacity:.55;background:#f6f6f6':''}"><td><b style="${c?'text-decoration:line-through':''}">${esc(m.project)}</b></td><td>${esc(m.client)}</td><td>${fmtD(m.mdate)}</td><td>${m.editions.length}${m.editions.length>1?' (עודכן '+fmtD(e.date)+')':''}</td><td>${w&&!c?`<span class="pill y">${w}</span>`:'—'}</td><td>${st}</td><td style="white-space:nowrap">${c?'':`<button class="btn sec" onclick="openUpd('${m.id}')">עדכון</button> `}<button class="btn sec" onclick="togCancel('${m.id}')">${c?'↩ החזר לפעיל':'⛔ בטל'}</button> <button class="btn sec" style="color:#bc2129;border-color:#e3cfcf" title="מחק סיכום" onclick="delMeeting('${m.id}')">🗑 מחק</button></td></tr>`}).join(''):'<tr><td colspan="7" class="note">עדיין אין סיכומים שמורים.</td></tr>';
+ const list=DB.meetings.filter(m=>stOf(m)!=='cancelled').concat(DB.meetings.filter(m=>stOf(m)==='cancelled')); // cancelled always at the bottom
+ b.innerHTML=list.length?list.map(m=>{const e=m.editions[m.editions.length-1];const w=e.rows.filter(r=>r.w).length;const st=stOf(m);const c=st==='cancelled';const S=STATUS[st];
+  const sel=`<select onchange="setStatus('${m.id}',this.value)" style="width:auto;padding:4px 8px;font-weight:600;background:${S.bg};color:${S.c};border-color:${S.bg}">`+Object.keys(STATUS).map(k=>`<option value="${k}" ${k===st?'selected':''}>${STATUS[k].t}</option>`).join('')+`</select>`;
+  return `<tr style="${c?'opacity:.6;background:#f6f6f6':''}"><td><b style="${c?'text-decoration:line-through':''}">${esc(m.project)}</b></td><td>${esc(m.client)}</td><td>${fmtD(m.mdate)}</td><td>${m.editions.length}${m.editions.length>1?' (עודכן '+fmtD(e.date)+')':''}</td><td>${w&&!c?`<span class="pill y">${w}</span>`:'—'}</td><td>${sel}</td><td style="white-space:nowrap">${c?'':`<button class="btn sec" onclick="openUpd('${m.id}')">עדכון</button> `}<button class="btn sec" style="color:#bc2129;border-color:#e3cfcf" title="מחק סיכום" onclick="delMeeting('${m.id}')">🗑 מחק</button></td></tr>`}).join(''):'<tr><td colspan="7" class="note">עדיין אין סיכומים שמורים.</td></tr>';
 }
-function togCancel(id){const m=DB.meetings.find(x=>x.id===id);if(!m)return;m.cancelled=!m.cancelled;persist();renderTrk();toast(m.cancelled?'הסיכום סומן כמבוטל - הועבר לתחתית הרשימה':'הסיכום הוחזר לפעיל')}
+function setStatus(id,v){const m=DB.meetings.find(x=>x.id===id);if(!m)return;m.status=v;delete m.cancelled;persist();renderTrk();toast('הסטטוס עודכן: '+STATUS[v].t)}
 function delMeeting(id){const m=DB.meetings.find(x=>x.id===id);if(!m)return;
  ask(`למחוק את הסיכום של "${esc(m.project)}"${m.editions.length>1?' (כולל כל '+m.editions.length+' המהדורות)':''}? אי אפשר לשחזר.`,()=>{DB.meetings=DB.meetings.filter(x=>x.id!==id);if(F.editOf===id){F.editOf=null;F.edition=1;F._savedEd=null}persist();renderTrk();toast('הסיכום נמחק')})}
 function openUpd(id){const m=DB.meetings.find(x=>x.id===id);const e=m.editions[m.editions.length-1];F=JSON.parse(JSON.stringify(e.state));F.tmplPicked=1;F.editOf=id;F.edition=m.editions.length+1;renderAll();show('form');persist()}

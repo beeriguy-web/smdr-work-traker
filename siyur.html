@@ -245,7 +245,8 @@ body.embedded .sticky{top:52px}
     <b>הדוח נשמר בטלפון, ו-Outlook נפתח עם הנמענים, העותק, הנושא והנוסח</b>
     <div class="step"><span class="no">1</span><div>בשדה <b>"מאת"</b> בחר את תיבת שמדר.</div></div>
     <div class="step"><span class="no">2</span><div>לחץ <b>📎 צרף</b> ← בחר קובץ ← הקובץ האחרון בהורדות:<div class="addr" id="helpFile"></div></div></div>
-    <div class="step"><span class="no">3</span><div>בדוק ושלח.</div></div>
+    <div class="step"><span class="no">3</span><div>בדוק שהמכותבים בשדה <b>"עותק"</b> – אם השדה ריק: <button class="btn sec" onclick="copyTxt(ccList(),'📋 המכותבים הועתקו')">📋 העתק מכותבים</button> ← פתח את השדות ב-Outlook (החץ ˅ ליד "אל") ← לחיצה ארוכה ב"עותק" ← הדבק.<div class="addr" id="helpCc" dir="ltr"></div></div></div>
+    <div class="step"><span class="no">4</span><div>בדוק ושלח.</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
       <button class="btn" id="openMailBtn" style="background:#198754" onclick="openMail()">✉ פתח מייל</button>
       <button class="btn sec" onclick="savePdf(_share.file)">⬇ שמור PDF שוב</button>
@@ -624,7 +625,7 @@ function prebuild(){ // build the PDF in the background while he looks at the re
 function savePdf(file){const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=file.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
 function mailLink(){
  const M=window._mail;
- return `mailto:${F.contacts.map(c=>c.m).filter(Boolean).join(',')}?cc=${encodeURIComponent(ccList().replace(/, /g,','))}&subject=${encodeURIComponent(M.subj)}&body=${encodeURIComponent(rtlLines(M.body))}`;
+ return `mailto:${F.contacts.map(c=>c.m).filter(Boolean).join(',')}?cc=${ccList().replace(/, /g,',')}&subject=${encodeURIComponent(M.subj)}&body=${encodeURIComponent(rtlLines(M.body))}`;
 }
 function openMail(){window.top.location.href=mailLink()}
 async function sendReport(){
@@ -649,7 +650,7 @@ async function doShare(){ // optional: WhatsApp etc.
 }
 function showHelper(){
  const h=document.getElementById('helper');h.style.display='';
- document.getElementById('helpFile').textContent=_share.file.name;
+ document.getElementById('helpFile').textContent=_share.file.name;document.getElementById('helpCc').textContent=ccList();
 }
 
 

@@ -118,6 +118,10 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 .trk th,.trk td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;font-size:14px}
 .trk th{background:#fafafa;font-weight:500;color:var(--mut)}
 @media(max-width:700px){.trk thead{display:none}.trk tr{display:block;border-bottom:2px solid var(--line);padding:6px 0}.trk td{display:block;border:0;padding:3px 10px}}
+.helper{background:#e8f7ee;border:1px solid #9ad3b0;border-radius:12px;padding:10px 14px;max-width:800px;margin:0 auto 12px;font-size:14px}
+.helper ol{margin:6px 0 10px;padding-inline-start:20px}.helper li{margin:3px 0}
+#helpTo{font-weight:600;word-break:break-all}
+body:not(.phone) .phone-only{display:none}body.phone .desk-only{display:none}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -193,10 +197,27 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 <!-- ===================== REPORT ===================== -->
 <section class="view" id="v-sum">
   <div class="actions">
+    <button class="btn phone-only" id="shareBtn" style="background:#198754" onclick="sendReport()">📤 שלח דוח</button>
     <button class="btn" id="pdfBtn" onclick="makePdf()">📄 הפק PDF ושמור במעקב</button>
-    <button class="btn" style="background:#198754" onclick="sendMail()">✉ שלח במייל</button>
+    <button class="btn desk-only" style="background:#198754" onclick="sendMail()">✉ שלח במייל</button>
     <button class="btn sec" onclick="show('form')">→ חזרה לטופס</button>
     <span class="note" id="sumNote"></span>
+  </div>
+  <div id="helper" class="helper" style="display:none">
+    <b>שליחה מהטלפון</b>
+    <ol>
+      <li>בתפריט השיתוף בחר <b>Outlook</b>, ובשדה "מאת" בחר את תיבת שמדר.</li>
+      <li>בשדה "אל" – לחיצה ארוכה ← <b>הדבק</b>. הכתובות כבר הועתקו: <span id="helpTo" dir="ltr"></span></li>
+      <li>אם גוף המייל ריק – חזור לכאן, לחץ "העתק נוסח" והדבק בגוף המייל.</li>
+      <li>אפשר לגעת בקובץ המצורף כדי לבדוק אותו לפני השליחה.</li>
+    </ol>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="shareAgain" style="display:none;background:#198754" onclick="doShare()">📤 פתח שיתוף</button>
+      <button class="btn sec" onclick="copyTxt(_share.to,'📋 כתובות הנמענים הועתקו')">📋 העתק נמענים</button>
+      <button class="btn sec" onclick="copyTxt(_share.body,'📋 נוסח המייל הועתק')">📋 העתק נוסח</button>
+      <button class="btn sec" onclick="copyTxt(MAIL_CC,'📋 '+MAIL_CC+' הועתק')">📋 העתק כתובת להעתק (CC)</button>
+      <button class="btn sec" onclick="doShare()">↻ שתף שוב</button>
+    </div>
   </div>
   <div class="paper" id="paper"></div>
   <div class="mail" id="mailBox"></div>
@@ -476,7 +497,7 @@ function mailText(R){
  const subj=`דוח סיור באתר – ${F.project||''} – ${F.client||''}${F.job?' – '+F.job:''}`;
  const when=F.date===today()?'שנערך היום':'שנערך בתאריך '+fmtD(F.date);
  let t=`שלום רב,\n\nמצורף דוח הסיור באתר ${when}, בנושא ציוד התבניות והפיגום של שמדר.\n`;
- if(R.bad.length){t+=`\nבסיור נמצאו ${R.bad.length} ליקויים שדורשים טיפול:\n`+R.bad.map(r=>`${r.n}.${MAIL_SEP}${r.g}: ${(r.note||r.t).replace(/\n/g,' ')}‏`).join('\n')+'\n';
+ if(R.bad.length){t+=`\nבסיור נמצאו ${R.bad.length===1?'ליקוי אחד שדורש':R.bad.length+' ליקויים שדורשים'} טיפול:\n`+R.bad.map(r=>`${r.n}. ${r.g}: ${(r.note||r.t).replace(/\n/g,' ')}‏`).join('\n')+'\n';
   t+=`\nנבקש לטפל בליקויים בהקדם. הפירוט והתמונות בדוח המצורף.\n`}
  else t+=`\nלא נמצאו ליקויים בסיור.\n`;
  if(R.good.length)t+=`\nתודה על העבודה המסודרת – ${R.good.length===1?'סעיף אחד צוין':R.good.length+' סעיפים צוינו'} לשבח בדוח.\n`;
@@ -497,37 +518,80 @@ async function openMailWithBody(mailtoNoBody,text,extraMsg){
 function prepareMail(){saveVisit('sent');saveContactsToSheet();renderSummary();show('sum');const M=window._mail;return{to:F.contacts.map(c=>c.m).filter(Boolean).join(';'),subj:M.subj,body:M.body}}
 function sendMail(){const m=prepareMail();openMailWithBody(`mailto:${m.to}?cc=${MAIL_CC}&subject=${encodeURIComponent(m.subj)}`,m.body,'צרף את קובץ ה-PDF')}
 
+async function buildPdf(){ // -> File
+ renderSummary();
+ const el=document.getElementById('paper');
+ const scale=window.innerWidth<700?2:2.5;const cv=await html2canvas(el,{scale,backgroundColor:'#fff',windowWidth:900});
+ const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'a4',compress:true});
+ const pw=210,ph=297,mg=8;const imgW=pw-2*mg;const pxPerMm=cv.width/imgW;const pageH=(ph-2*mg)*pxPerMm;
+ const top=el.getBoundingClientRect().top;
+ const brk=[...el.querySelectorAll('tr,.title,.info,.kpi,h3,li,.gen,.lh,.oklist,.wrap')].map(r=>(r.getBoundingClientRect().bottom-top)*scale);
+ const lgW=110,lgH=lgW*82/576,lgTop=6,off=lgTop+lgH+4;
+ let y=0,first=true;
+ while(y<cv.height-2){
+  const avail=first?pageH:(ph-mg-off)*pxPerMm;let end=Math.min(y+avail,cv.height);
+  if(end<cv.height){const ok=brk.filter(b=>b>y+50&&b<=end);if(ok.length)end=Math.max(...ok)}
+  const part=document.createElement('canvas');part.width=cv.width;part.height=end-y;
+  part.getContext('2d').drawImage(cv,0,y,cv.width,end-y,0,0,cv.width,end-y);
+  let ty=mg;if(!first){pdf.addPage();pdf.addImage(LOGO,'PNG',(pw-lgW)/2,lgTop,lgW,lgH);ty=off}
+  first=false;pdf.addImage(part.toDataURL('image/jpeg',0.85),'JPEG',mg,ty,imgW,(end-y)/pxPerMm);y=end;
+ }
+ const n=pdf.getNumberOfPages();for(let i=1;i<=n;i++){pdf.setPage(i);pdf.setFontSize(8);pdf.text(`${i}/${n}`,pw/2,ph-4,{align:'center'})}
+ const name=`דוח סיור באתר - ${(F.project||'פרויקט').replace(/[\\/:*?"<>|]/g,'-')} ${fmtD(F.date)}.pdf`;
+ return new File([pdf.output('blob')],name,{type:'application/pdf'});
+}
+const IS_PHONE=/Android|iPhone|iPad/i.test(navigator.userAgent);if(IS_PHONE)document.body.classList.add('phone');
 async function makePdf(){
  const btn=document.getElementById('pdfBtn');btn.disabled=true;const old=btn.textContent;btn.textContent='מפיק PDF...';
  try{
-  renderSummary();saveVisit();saveContactsToSheet();
-  const el=document.getElementById('paper');
-  const scale=window.innerWidth<700?2:2.5;const cv=await html2canvas(el,{scale,backgroundColor:'#fff',windowWidth:900});
-  const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'a4',compress:true});
-  const pw=210,ph=297,mg=8;const imgW=pw-2*mg;const pxPerMm=cv.width/imgW;const pageH=(ph-2*mg)*pxPerMm;
-  const top=el.getBoundingClientRect().top;
-  const brk=[...el.querySelectorAll('tr,.title,.info,.kpi,h3,li,.gen,.lh,.oklist,.wrap')].map(r=>(r.getBoundingClientRect().bottom-top)*scale);
-  const lgW=110,lgH=lgW*82/576,lgTop=6,off=lgTop+lgH+4;
-  let y=0,first=true;
-  while(y<cv.height-2){
-   const avail=first?pageH:(ph-mg-off)*pxPerMm;let end=Math.min(y+avail,cv.height);
-   if(end<cv.height){const ok=brk.filter(b=>b>y+50&&b<=end);if(ok.length)end=Math.max(...ok)}
-   const part=document.createElement('canvas');part.width=cv.width;part.height=end-y;
-   part.getContext('2d').drawImage(cv,0,y,cv.width,end-y,0,0,cv.width,end-y);
-   let ty=mg;if(!first){pdf.addPage();pdf.addImage(LOGO,'PNG',(pw-lgW)/2,lgTop,lgW,lgH);ty=off}
-   first=false;pdf.addImage(part.toDataURL('image/jpeg',0.85),'JPEG',mg,ty,imgW,(end-y)/pxPerMm);y=end;
+  saveVisit();saveContactsToSheet();const file=await buildPdf();
+  if(IS_PHONE&&navigator.canShare&&navigator.canShare({files:[file]})){
+   try{await navigator.share({files:[file],title:file.name});toast('ה-PDF שותף ✓');return}catch(e){if(e&&e.name==='AbortError')return}
   }
-  const n=pdf.getNumberOfPages();for(let i=1;i<=n;i++){pdf.setPage(i);pdf.setFontSize(8);pdf.text(`${i}/${n}`,pw/2,ph-4,{align:'center'})}
-  const name=`דוח סיור באתר - ${F.project||'פרויקט'} ${fmtD(F.date)}.pdf`;
-  const blob=pdf.output('blob');const file=new File([blob],name,{type:'application/pdf'});
-  if(navigator.canShare&&navigator.canShare({files:[file]})&&/Android|iPhone|iPad/i.test(navigator.userAgent)){
-   try{await navigator.share({files:[file],title:name});toast('ה-PDF שותף ✓');return}catch(e){if(e&&e.name==='AbortError')return}
-  }
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+  const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=file.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
   toast('ה-PDF ירד ✓ - שמור אותו בתיקיית הפרויקט ב-OneDrive');
  }catch(e){toast('שגיאה בהפקת PDF: '+(e.message||e))}
  finally{btn.disabled=false;btn.textContent=old}
 }
+
+/* ---- phone: "שלח דוח" = recipients copied + share sheet with the PDF and the mail text -> Outlook (sent from the Shamadar mailbox) */
+let _share=null; // {file,subj,body,to}
+function toList(){return F.contacts.map(c=>c.m).filter(Boolean).join('; ')}
+async function copyTxt(t,msg){
+ try{await navigator.clipboard.writeText(t);toast(msg);return true}
+ catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(x){}ta.remove();toast(ok?msg:'ההעתקה נחסמה – סמן והעתק ידנית');return ok}
+}
+async function sendReport(){
+ const to=toList();
+ if(!to){toast('⚠ לא נבחרו נמענים עם מייל – בחר ב"נמעני הדוח"');show('form');document.getElementById('c-contacts').classList.remove('closed');return}
+ await copyTxt(to,'📋 כתובות הנמענים הועתקו');            // copied first, while the tap is still "fresh"
+ const btn=document.getElementById('shareBtn');btn.disabled=true;const old=btn.textContent;btn.textContent='מכין את הדוח...';
+ try{
+  saveVisit('sent');saveContactsToSheet();
+  const file=await buildPdf();const M=window._mail;
+  _share={file,subj:M.subj,body:rtlLines(M.body).replace(/\r\n/g,'\n'),to};
+  showHelper();
+  await doShare();
+ }catch(e){toast('שגיאה בהכנת הדוח: '+(e.message||e))}
+ finally{btn.disabled=false;btn.textContent=old}
+}
+async function doShare(){
+ if(!_share)return;
+ const data={files:[_share.file],title:_share.subj,text:_share.body};
+ if(!(navigator.canShare&&navigator.canShare({files:[_share.file]}))){toast('המכשיר לא תומך בשיתוף קובץ – ה-PDF יורד');const a=document.createElement('a');a.href=URL.createObjectURL(_share.file);a.download=_share.file.name;a.click();return}
+ try{await navigator.share(data);toast('בחרת אפליקציה ✓ – בשדה "אל" לחץ הדבק')}
+ catch(e){
+  if(e&&e.name==='AbortError')return;
+  // the PDF took too long and the browser no longer counts it as the user's tap -> one more tap
+  document.getElementById('shareAgain').style.display='';toast('הדוח מוכן – לחץ "📤 פתח שיתוף"');
+ }
+}
+function showHelper(){
+ const h=document.getElementById('helper');h.style.display='';
+ document.getElementById('shareAgain').style.display='none';
+ document.getElementById('helpTo').textContent=_share.to;
+}
+
 
 /* ---------------------------------------------------------------- tracker */
 function saveVisit(status){

@@ -291,6 +291,18 @@
         #hv-form [data-stop]:focus { outline:3px solid #BC2129; outline-offset:2px; }
 
         .tab-sep { width:1px; background:rgba(255,255,255,.45); margin:3px 6px; }
+        /* 4 pairs: the form on top, its tracker right under it */
+        .view-tabs.pairs { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:6px; }
+        .pair { display:flex; flex-direction:column; gap:4px; }
+        .pair .view-tab { width:100%; white-space:nowrap; text-align:center; }
+        .pair .view-tab.act { font-weight:600; }
+        .pair .view-tab.trk { font-size:.78rem; padding:3px 10px; }
+        @media (max-width: 760px) {
+            .view-tabs.pairs { order:3; width:100%; gap:4px; }
+            .pair .view-tab { font-size:.72rem; padding:5px 2px; white-space:normal; line-height:1.2; }
+            .pair .view-tab.trk { font-size:.68rem; padding:3px 2px; }
+            .pair .view-tab .ic { display:none; }
+        }
 
     </style>
 </head>
@@ -299,15 +311,11 @@
 <!-- ════ TOOLBAR ════ -->
 <div class="toolbar">
     <span class="toolbar-title">📋 טופס הזמנת עבודה פנימית</span>
-    <div class="view-tabs">
-        <button class="view-tab active" data-v="wo" onclick="showView('wo')">הזמנת עבודה פנימית</button>
-        <button class="view-tab" data-v="wt" onclick="showView('wt')">📊 מעקב עבודות</button>
-        <span class="tab-sep"></span>
-        <button class="view-tab" data-v="hv" onclick="showView('hv')">מסירת פרויקטים לתכנון</button>
-        <button class="view-tab" data-v="track" onclick="showView('track')">📐 מעקב מסירות</button>
-        <span class="tab-sep"></span>
-        <button class="view-tab" data-v="hr" onclick="showView('hr')">ישיבת היערכות לתכנון</button>
-        <button class="view-tab" data-v="hrtrack" onclick="showView('hrtrack')">📋 מעקב היערכות</button>
+    <div class="view-tabs pairs">
+        <div class="pair"><button class="view-tab act active" data-v="wo" onclick="showView('wo')">הזמנת עבודה</button><button class="view-tab trk" data-v="wt" onclick="showView('wt')"><span class="ic">📊 </span>מעקב עבודות</button></div>
+        <div class="pair"><button class="view-tab act" data-v="hv" onclick="showView('hv')">מסירה לתכנון</button><button class="view-tab trk" data-v="track" onclick="showView('track')"><span class="ic">📐 </span>מעקב מסירות</button></div>
+        <div class="pair"><button class="view-tab act" data-v="hr" onclick="showView('hr')">ישיבת היערכות</button><button class="view-tab trk" data-v="hrtrack" onclick="showView('hrtrack')"><span class="ic">📋 </span>מעקב היערכות</button></div>
+        <div class="pair"><button class="view-tab act" data-v="sr" onclick="showView('sr')">דוח סיור באתר</button><button class="view-tab trk" data-v="srtrack" onclick="showView('srtrack')"><span class="ic">📷 </span>מעקב סיורים</button></div>
     </div>
     <div class="d-flex gap-2 flex-wrap" id="form-actions">
         <button class="btn btn-outline-light" onclick="actNew()">טופס חדש</button>
@@ -633,6 +641,7 @@
 </div>
 <div class="hidden-view" id="wt-view" style="max-width:1300px;margin:16px auto 0;"><iframe id="wt-frame" title="מעקב עבודות" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#f4f6fa;" src="https://beeriguy-web.github.io/work-traker/"></iframe></div>
 <div class="hidden-view" id="hr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="hr-frame" title="ישיבת היערכות לתכנון" allow="clipboard-write" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="hiarchut.html?v=20261120j"></iframe></div>
+<div class="hidden-view" id="sr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="sr-frame" title="דוח סיור באתר" allow="clipboard-write; web-share" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="siyur.html?v=20261120a"></iframe></div>
 
 <!-- ════ TOAST ════ -->
 <div class="toast-msg" id="toast"></div>
@@ -1955,7 +1964,7 @@ function updateTrackBadge() {
 }
 
 /* ── View switching + toolbar dispatch ── */
-const VIEW_TITLES = { wo: '📋 טופס הזמנת עבודה פנימית', hv: '📐 מסירת פרויקט לתכנון', track: '📐 מעקב מסירות', wt: '📊 מעקב עבודות', hr: '📝 ישיבת היערכות לתכנון', hrtrack: '📋 מעקב היערכות' };
+const VIEW_TITLES = { wo: '📋 טופס הזמנת עבודה פנימית', hv: '📐 מסירת פרויקט לתכנון', track: '📐 מעקב מסירות', wt: '📊 מעקב עבודות', hr: '📝 ישיבת היערכות לתכנון', hrtrack: '📋 מעקב היערכות', sr: '📷 דוח סיור באתר', srtrack: '📷 מעקב סיורים' };
 function showView(name) {
     currentView = name;
     document.getElementById('main-form').classList.toggle('hidden-view', name !== 'wo');
@@ -1964,17 +1973,32 @@ function showView(name) {
     document.getElementById('wt-view').classList.toggle('hidden-view', name !== 'wt');
     document.getElementById('hr-view').classList.toggle('hidden-view', name !== 'hr' && name !== 'hrtrack');
     if (name === 'hr' || name === 'hrtrack') { try { document.getElementById('hr-frame').contentWindow.location.hash = name === 'hr' ? 'form' : 'trk'; } catch (e) {} }
+    document.getElementById('sr-view').classList.toggle('hidden-view', name !== 'sr' && name !== 'srtrack');
+    if (name === 'sr' || name === 'srtrack') { const w = srWin(); try { if (w && w.show) w.show(name === 'sr' ? 'form' : 'trk'); else document.getElementById('sr-frame').contentWindow.location.hash = name === 'sr' ? 'form' : 'trk'; } catch (e) {} }
+    fitFrames();
     document.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t.dataset.v === name));
-    document.getElementById('form-actions').style.display = (name === 'track' || name === 'wt' || name === 'hrtrack') ? 'none' : '';
+    document.getElementById('form-actions').style.display = (name === 'track' || name === 'wt' || name === 'hrtrack' || name === 'srtrack') ? 'none' : '';
     document.querySelector('.toolbar-title').textContent = VIEW_TITLES[name];
     if (name === 'track') renderTrack();
     if (name === 'hv') setTimeout(() => document.getElementById('hv-project').focus(), 50);
     window.scrollTo(0, 0);
 }
+function srWin() { try { return document.getElementById('sr-frame').contentWindow; } catch (e) { return null; } }
+const IS_PHONE = /Android|iPhone|iPad/i.test(navigator.userAgent);
+/* the toolbar is two rows high now – size the embedded apps to what is left of the screen */
+function fitFrames() { const h = Math.max(420, window.innerHeight - document.querySelector('.toolbar').offsetHeight - 24); ['wt-frame','hr-frame','sr-frame'].forEach(id => { const f = document.getElementById(id); if (f) f.style.height = h + 'px'; }); }
+window.addEventListener('resize', fitFrames); window.addEventListener('load', fitFrames);
 function hrWin() { try { return document.getElementById('hr-frame').contentWindow; } catch (e) { return null; } }
-function actNew()   { if (currentView === 'hr') { const w = hrWin(); if (w && w.resetForm) w.resetForm(); return; } currentView === 'hv' ? hvNewForm()     : newForm(); }
-function actPDF()   { if (currentView === 'hr') { const w = hrWin(); if (w && w.makePdf) { w.show('sum'); w.makePdf(); } return; } currentView === 'hv' ? hvDownloadPDF() : downloadPDF(); }
+function actNew()   { if (currentView === 'sr') { const w = srWin(); if (w && w.resetForm) w.resetForm(); return; } if (currentView === 'hr') { const w = hrWin(); if (w && w.resetForm) w.resetForm(); return; } currentView === 'hv' ? hvNewForm()     : newForm(); }
+function actPDF()   { if (currentView === 'sr') { const w = srWin(); if (w && w.makePdf) { w.show('sum'); w.makePdf(); } return; } if (currentView === 'hr') { const w = hrWin(); if (w && w.makePdf) { w.show('sum'); w.makePdf(); } return; } currentView === 'hv' ? hvDownloadPDF() : downloadPDF(); }
 function actEmail() {
+    if (currentView === 'sr') {   // דוח סיור באתר
+        const w = srWin(); if (!w || !w.prepareMail) return;
+        if (IS_PHONE) { w.show('sum'); toast('בטלפון: לחץ "📤 שלח דוח" – הדוח יצורף למייל'); return; }   // the phone flow (copy recipients + share the PDF) runs inside the form
+        const m = w.prepareMail(); if (!m) return;
+        openMailWithBody(`mailto:${m.to}?cc=${w.ccList().replace(/; /g, ';')}&subject=${encodeURIComponent(m.subj)}`, m.body, 'צרף את קובץ ה-PDF');
+        return;
+    }
     if (currentView === 'hr') {   // ישיבת היערכות: גוף המייל נבנה בטופס ומועתק ללוח מכאן (כמו בשאר הטפסים)
         const w = hrWin(); if (!w || !w.prepareMail) return;
         const m = w.prepareMail(); if (!m) return;

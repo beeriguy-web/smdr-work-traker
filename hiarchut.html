@@ -650,8 +650,10 @@ function saveMeeting(quiet){
 function renderTrk(){
  const b=document.getElementById('trkBody');
  b.innerHTML=DB.meetings.length?DB.meetings.map(m=>{const e=m.editions[m.editions.length-1];const w=e.rows.filter(r=>r.w).length;
-  return `<tr><td><b>${esc(m.project)}</b></td><td>${esc(m.client)}</td><td>${fmtD(m.mdate)}</td><td>${m.editions.length}${m.editions.length>1?' (עודכן '+fmtD(e.date)+')':''}</td><td>${w?`<span class="pill y">${w}</span>`:'—'}</td><td><button class="btn sec" onclick="openUpd('${m.id}')">עדכון</button></td></tr>`}).join(''):'<tr><td colspan="6" class="note">עדיין אין סיכומים שמורים.</td></tr>';
+  return `<tr><td><b>${esc(m.project)}</b></td><td>${esc(m.client)}</td><td>${fmtD(m.mdate)}</td><td>${m.editions.length}${m.editions.length>1?' (עודכן '+fmtD(e.date)+')':''}</td><td>${w?`<span class="pill y">${w}</span>`:'—'}</td><td><button class="btn sec" onclick="openUpd('${m.id}')">עדכון</button> <button class="btn sec" style="color:#bc2129;border-color:#e3cfcf" title="מחק סיכום" onclick="delMeeting('${m.id}')">🗑 מחק</button></td></tr>`}).join(''):'<tr><td colspan="6" class="note">עדיין אין סיכומים שמורים.</td></tr>';
 }
+function delMeeting(id){const m=DB.meetings.find(x=>x.id===id);if(!m)return;
+ ask(`למחוק את הסיכום של "${esc(m.project)}"${m.editions.length>1?' (כולל כל '+m.editions.length+' המהדורות)':''}? אי אפשר לשחזר.`,()=>{DB.meetings=DB.meetings.filter(x=>x.id!==id);if(F.editOf===id){F.editOf=null;F.edition=1;F._savedEd=null}persist();renderTrk();toast('הסיכום נמחק')})}
 function openUpd(id){const m=DB.meetings.find(x=>x.id===id);const e=m.editions[m.editions.length-1];F=JSON.parse(JSON.stringify(e.state));F.tmplPicked=1;F.editOf=id;F.edition=m.editions.length+1;renderAll();show('form');persist()}
 
 /* ---------------------------------------------------------------- combobox */

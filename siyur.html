@@ -122,6 +122,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 .helper ol{margin:6px 0 10px;padding-inline-start:20px}.helper li{margin:3px 0}
 #helpTo{font-weight:600;word-break:break-all}
 body:not(.phone) .phone-only{display:none}body.phone .desk-only{display:none}
+.pr{display:flex;align-items:stretch;direction:ltr}.pr b{background:#fbe4e4;color:#bc2129;border:1px solid #e3cfcf;border-right:0;border-radius:8px 0 0 8px;padding:8px 10px;font-weight:700}
+.pr input{border-radius:0 8px 8px 0;text-align:left}
+.esc-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.erow{display:grid;grid-template-columns:150px 1fr 40px;gap:6px;margin-top:6px;align-items:center}
+.erow .x{border:1px solid #e8b4bd;background:#fff;border-radius:8px;height:38px;cursor:pointer;color:var(--red-d)}
+.erow .rl{font-weight:600;font-size:14px}
+.phrow{display:flex;gap:8px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -145,12 +152,14 @@ body:not(.phone) .phone-only{display:none}body.phone .desk-only{display:none}
     <div class="body">
       <div class="grid">
         <label class="f">לקוח<span class="combo"><input id="client" placeholder="בחר או כתוב" autocomplete="off"><button type="button" class="arr" tabindex="-1">▼</button><span class="combo-list"></span></span></label>
-        <label class="f">פרויקט<input id="project" placeholder="לדוגמה: צלח פתח תקווה"></label>
-        <label class="f">מספר פרויקט<input id="job" placeholder="PR26-69"></label>
+        <label class="f">פרויקט / שם האתר<input id="project" placeholder="לדוגמה: יובלים גנים"></label>
+        <label class="f">מספר פרויקט<span class="pr"><b>PR</b><input id="job" inputmode="numeric" dir="ltr" placeholder="26-99" maxlength="5"></span></label>
         <label class="f">תאריך הסיור<input id="vdate" type="date"></label>
-        <label class="f">מלווים מטעם הלקוח<input id="escort" placeholder="לדוגמה: מנהל העבודה באתר"></label>
         <label class="f">קומה / שלב בעבודה<input id="stage" placeholder="לדוגמה: קומה 4, יציקת קירות"></label>
       </div>
+      <div class="f" style="margin-top:12px;font-size:13px;color:var(--mut)">מלווים מטעם הלקוח</div>
+      <div id="escRows"></div>
+      <div class="esc-add" id="escAdd"></div>
     </div>
   </div>
 
@@ -231,6 +240,7 @@ body:not(.phone) .phone-only{display:none}body.phone .desk-only{display:none}
 </main>
 
 <input type="file" id="picker" accept="image/*" multiple style="display:none">
+<input type="file" id="camera" accept="image/*" capture="environment" style="display:none">
 <div class="modal" id="mdl"><div class="box" id="mdlBox"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -266,17 +276,17 @@ const CHK=[
  {id:'t21',sec:'T',g:'מצב הציוד',t:'אין עיוותים או נזק לפוגות; ציוד פגום מוצא מהאתר',r:'א.7–א.8'},
  {id:'t22',sec:'T',g:'מצב הציוד',t:'אוזני הרמה תקינות ומחוברות',r:'א.17–א.18'},
  {id:'t23',sec:'T',g:'בטיחות עובדים',t:'רתמה בעבודה מעל 2 מ\' ובקצה המבנה',r:'א.20'},
- {id:'p1',sec:'P',g:'הרכבה לפי תוכנית',t:'הפיגום בנוי לפי החתך: ליגרים, אונטר ליגרים, מרווחים וכמות',r:'ב.9–ב.10'},
- {id:'p2',sec:'P',g:'הרכבה לפי תוכנית',t:'אין גישור בין משטחים שלא מופיע בתוכנית',r:'ב.15'},
- {id:'p3',sec:'P',g:'הרכבה לפי תוכנית',t:'ברגים מקוריים של שמדר בלבד',r:'ב.16, ב.18'},
+ {id:'p8',sec:'P',g:'תלייה על הקיר',t:'הקונזולה בתוך וו התלייה, לא מחוצה לו ולא בורג ישיר לקיר',r:'ב.19–ב.20'},
+ {id:'p9',sec:'P',g:'תלייה על הקיר',t:'מנגנון נעילה מורכב כמו שצריך בכל קונזולה (נועל / נועל-חולץ)',r:'ב.17'},
+ {id:'p10',sec:'P',g:'תלייה על הקיר',t:'אום פרפר 120 מ"מ נעול על הבטון, לא על שכבת הבידוד',r:'ב.22, ג.2'},
+ {id:'p11',sec:'P',g:'תלייה על הקיר',t:'תלוי רק על קיר בטון מזוין, לא על בלוקים',r:'ב.23–ב.24'},
  {id:'p4',sec:'P',g:'מעקה',t:'עמוד מעקה מחובר ב-2 ברגי 5/8"',r:'ב.11'},
  {id:'p5',sec:'P',g:'מעקה',t:'קרשים פונים פנימה, כולם מסומרים דרך החורים',r:'ב.12–ב.13'},
  {id:'p6',sec:'P',g:'מעקה',t:'סטופר לעמוד מעקה בקצה משטח',r:'ב.14'},
  {id:'p7',sec:'P',g:'מעקה',t:'אין כיסוי מעקה בדיקטים באזור רוחות',r:'ב.31'},
- {id:'p8',sec:'P',g:'תלייה על הקיר',t:'הקונזולה בתוך וו התלייה, לא מחוצה לו ולא בורג ישיר לקיר',r:'ב.19–ב.20'},
- {id:'p9',sec:'P',g:'תלייה על הקיר',t:'מנגנון נועל / נועל-חולץ בכל קונזולה',r:'ב.17'},
- {id:'p10',sec:'P',g:'תלייה על הקיר',t:'אום פרפר 120 מ"מ נעול על הבטון, לא על שכבת הבידוד',r:'ב.22, ג.2'},
- {id:'p11',sec:'P',g:'תלייה על הקיר',t:'תלוי רק על קיר בטון מזוין, לא על בלוקים',r:'ב.23–ב.24'},
+ {id:'p1',sec:'P',g:'הרכבה לפי תוכנית',t:'הפיגום בנוי לפי החתך: ליגרים, אונטר ליגרים, מרווחים וכמות',r:'ב.9–ב.10'},
+ {id:'p2',sec:'P',g:'הרכבה לפי תוכנית',t:'אין גישור בין משטחים שלא מופיע בתוכנית',r:'ב.15'},
+ {id:'p3',sec:'P',g:'הרכבה לפי תוכנית',t:'ברגים מקוריים של שמדר בלבד',r:'ב.16, ב.18'},
  {id:'p12',sec:'P',g:'שימוש בפיגום',t:'על הפיגום רק תבניות עומדות, בלי "חניות ביניים"',r:'ב.2–ב.3'},
  {id:'p13',sec:'P',g:'שימוש בפיגום',t:'לא משמש בסיס לתמיכות או ליציקה',r:'ב.4–ב.5'},
  {id:'p14',sec:'P',g:'שימוש בפיגום',t:'נקי מכלים, מסמרים, שאריות בטון, עץ וברזל',r:'ב.28'},
@@ -313,7 +323,7 @@ let saveT=null;
 function persist(){clearTimeout(saveT);saveT=setTimeout(()=>IDB.set('draft',F),300)}
 function persistV(){return IDB.set('visits',V)}
 
-function blank(){return{id:null,client:'',project:'',job:'',date:today(),escort:'',stage:'',contacts:[],it:{},extra:[],free:[],general:'',status:'draft'}}
+function blank(){return{id:null,client:'',project:'',job:'',date:today(),stage:'',contacts:[],escorts:[],it:{},extra:[],free:[],general:'',status:'draft'}}
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function fmtD(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return `${+d}.${+m}.${y.slice(2)}`}
@@ -382,7 +392,7 @@ function stBtn(id,k,t){return `<button class="${k} ${I(id).st===k?'on':''}" oncl
 function detHTML(id,a,ph){
  return `<textarea rows="2" placeholder="${ph}" oninput="I('${id}').note=this.value;persist()">${esc(a.note)}</textarea>
   <div class="ph">${a.ph.map((p,i)=>`<div class="th"><img src="${p}" onclick="viewPh('${id}',${i})"><button onclick="rmPh('${id}',${i})">✕</button></div>`).join('')}
-   <button class="phbtn" onclick="pickPh('${id}')"><b>📷</b>תמונה</button></div>`;
+   <button class="phbtn" onclick="pickPh('${id}','camera')"><b>📷</b>צלם</button><button class="phbtn" onclick="pickPh('${id}','picker')"><b>🖼️</b>מהגלריה</button></div>`;
 }
 function renderSections(){
  const box=document.getElementById('sections');let h='';
@@ -431,13 +441,14 @@ function updProg(){
 
 /* ---------------------------------------------------------------- photos: camera OR gallery/files, compressed on the phone */
 let phTarget=null;
-function pickPh(id){phTarget=id;const p=document.getElementById('picker');p.value='';p.click()}
-document.getElementById('picker').onchange=async e=>{
+function pickPh(id,src){phTarget=id;const p=document.getElementById(src||'picker');p.value='';p.click()}
+async function onPhotos(e){
  const files=[...e.target.files];if(!files.length||!phTarget)return;
  toast('מעבד תמונות...');
  for(const f of files){try{I(phTarget).ph.push(await shrink(f))}catch(err){toast('⚠ תמונה לא נטענה')}}
  refreshIt(phTarget);persist();toast(files.length>1?files.length+' תמונות נוספו ✓':'התמונה נוספה ✓');
-};
+}
+document.getElementById('picker').onchange=onPhotos;document.getElementById('camera').onchange=onPhotos;
 function shrink(file,max=1400,q=.72){return new Promise((ok,no)=>{
  const url=URL.createObjectURL(file);const img=new Image();
  img.onload=()=>{const s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement('canvas');
@@ -480,8 +491,8 @@ function renderSummary(){
  const head=`<thead><tr><th style="text-align:center">#</th><th>נושא</th><th>ממצא</th><th style="text-align:center">סטטוס</th><th>סעיף בהוראות</th></tr></thead>`;
  let h=`<div class="lh"><img src="${LOGO}"></div><div class="title">דוח סיור באתר – ציוד תבניות ופיגום</div>
  <div class="info"><div><b>לקוח:</b> ${esc(F.client)}</div><div><b>תאריך הסיור:</b> ${fmtD(F.date)}</div>
-  <div><b>פרויקט:</b> ${esc(F.project)}</div><div><b>מספר פרויקט:</b> ${esc(F.job)}</div>
-  ${F.stage?`<div><b>קומה / שלב:</b> ${esc(F.stage)}</div>`:''}${F.escort?`<div><b>מלווים מטעם הלקוח:</b> ${esc(F.escort)}</div>`:''}
+  <div><b>פרויקט / אתר:</b> ${esc(F.project)}</div><div><b>מספר פרויקט:</b> <span dir="ltr" style="unicode-bidi:isolate">${esc(F.job)}</span></div>
+  ${F.stage?`<div><b>קומה / שלב:</b> ${esc(F.stage)}</div>`:''}${escText()?`<div class="w"><b>מלווים מטעם הלקוח:</b> ${esc(escText())}</div>`:''}
   <div class="w"><b>ביצע את הסיור:</b> גיא, שמדר טכנולוגיות</div></div>
  <div class="kpi"><div class="k1"><b>${R.bad.length}</b>ליקויים</div><div class="k2"><b>${R.good.length}</b>לשבח</div><div class="k3"><b>${R.ok.length}</b>נבדקו ותקינים</div></div>`;
  if(R.bad.length)h+=`<h3>ליקויים לטיפול</h3><div class="wrap"><table>${head}<tbody>${findingRows(R.bad,'bad','✗ ליקוי')}</tbody></table></div>`;
@@ -499,7 +510,7 @@ function renderSummary(){
 }
 const MAIL_SEP=' ‏-‏ ';
 function mailText(R){
- const subj=`דוח סיור באתר – ${F.project||''} – ${F.client||''}${F.job?' – '+F.job:''}`;
+ const subj=['דוח סיור באתר',F.project,F.client,F.job].filter(x=>x&&String(x).trim()).join(' – ');
  const when=F.date===today()?'שנערך היום':'שנערך בתאריך '+fmtD(F.date);
  let t=`שלום רב,\n\nמצורף דוח הסיור באתר ${when}, בנושא ציוד התבניות והפיגום של שמדר.\n`;
  if(R.bad.length){t+=`\nבסיור נמצאו ${R.bad.length===1?'ליקוי אחד שדורש':R.bad.length+' ליקויים שדורשים'} טיפול:\n`+R.bad.map(r=>`${r.n}. ${r.g}: ${(r.note||r.t).replace(/\n/g,' ')}‏`).join('\n')+'\n';
@@ -639,17 +650,36 @@ function combo(id,items,pick){
 combo('client',()=>Object.keys(CL).map(c=>({l:c})),x=>{const el=document.getElementById('client');el.value=x.l;F.client=x.l;persist();el.blur()});
 combo('nc-name',()=>allContacts().filter(c=>!F.contacts.some(x=>x.n===c.n)).map(c=>({l:c.n,s:[c.r,c.p].filter(Boolean).join(' · '),c})),x=>{F.contacts.push({...x.c});document.getElementById('nc-name').value='';renderContacts();persist();toast('נוסף: '+x.c.n)});
 
+
+/* ---- project number: type 2699 -> PR26-99 */
+const jobEl=document.getElementById('job');
+function fmtJob(v){const d=String(v).replace(/\D/g,'').slice(0,4);return d.length>2?d.slice(0,2)+'-'+d.slice(2):d}
+jobEl.oninput=()=>{const f=fmtJob(jobEl.value);jobEl.value=f;F.job=f?'PR'+f:'';persist()};
+/* ---- escorts: pick a role, then type the name */
+const ESC=['מנהל עבודה','מהנדס ביצוע','מנהל פרויקט','אחר'];
+function renderEsc(){
+ document.getElementById('escAdd').innerHTML=ESC.map(r=>`<button type="button" class="chip" onclick="addEsc('${r}')">+ ${r}</button>`).join('');
+ document.getElementById('escRows').innerHTML=F.escorts.map((e,i)=>`<div class="erow">
+  ${e.other?`<input placeholder="תפקיד" value="${esc(e.r)}" oninput="F.escorts[${i}].r=this.value;persist()">`:`<span class="rl">${esc(e.r)}</span>`}
+  <input placeholder="שם" value="${esc(e.n)}" oninput="F.escorts[${i}].n=this.value;persist()">
+  <button class="x" onclick="F.escorts.splice(${i},1);renderEsc();persist()">✕</button></div>`).join('');
+}
+function addEsc(r){const other=r==='אחר';F.escorts.push({r:other?'':r,n:'',other});renderEsc();persist();
+ const rows=document.querySelectorAll('#escRows .erow');const last=rows[rows.length-1];if(last)last.querySelector('input').focus()}
+function escText(){return (F.escorts||[]).filter(e=>e.n.trim()||e.r.trim()).map(e=>[e.r,e.n].filter(x=>x.trim()).join(' – ')).join(', ')}
+
 /* ---------------------------------------------------------------- init */
-const META=['client','project','job','escort','stage'];
+const META=['client','project','stage'];
 META.forEach(k=>document.getElementById(k).oninput=e=>{F[k]=e.target.value;persist()});
 document.getElementById('vdate').onchange=e=>{F.date=e.target.value;persist()};
 document.getElementById('general').oninput=e=>{F.general=e.target.value;persist()};
 document.getElementById('mdl').onclick=e=>{if(e.target.id==='mdl')closeM()};
-function renderAll(){META.forEach(k=>document.getElementById(k).value=F[k]||'');document.getElementById('vdate').value=F.date;document.getElementById('general').value=F.general||'';renderContacts();renderSections()}
+function renderAll(){META.forEach(k=>document.getElementById(k).value=F[k]||'');jobEl.value=(F.job||'').replace(/^PR/,'');renderEsc();document.getElementById('vdate').value=F.date;document.getElementById('general').value=F.general||'';renderContacts();renderSections()}
 (async()=>{
  const [d,vs,cl,ro,inn]=await Promise.all([IDB.get('draft'),IDB.get('visits'),IDB.get('clients'),IDB.get('roles'),IDB.get('internal')]);
  F=d||blank();V=vs||[];ROLES_DB=ro||{};INTERNAL=inn||[];if(cl&&!Object.keys(CL).length)CL=cl;
- if(!F.id&&!F.project&&!Object.keys(F.it).length)F.date=today();
+ if(!F.escorts)F.escorts=F.escort?[{r:'',n:F.escort,other:true}]:[];delete F.escort;
+ if(!F.id)F.date=today(); // a visit's date = the day the form is opened (saved reports keep theirs)
  renderAll();
  const h=location.hash.replace('#','');if(['form','sum','trk'].includes(h))show(h);
 })();

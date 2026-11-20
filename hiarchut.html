@@ -219,7 +219,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 <!-- ===================== TRACKER ===================== -->
 <section class="view trk" id="v-trk">
   <div class="note" style="margin-bottom:10px">לחיצה על "עדכון" פותחת את המהדורה האחרונה בטופס. בשמירה נוצרת מהדורה חדשה, וסעיפים שהשתנו מסומנים "עודכן".</div>
-  <table><thead><tr><th>פרויקט</th><th>לקוח</th><th>תאריך ישיבה</th><th>מהדורה</th><th>ממתין ללקוח</th><th></th></tr></thead><tbody id="trkBody"></tbody></table>
+  <table><thead><tr><th>פרויקט</th><th>לקוח</th><th>תאריך ישיבה</th><th>מהדורה</th><th>ממתין ללקוח</th><th>סטטוס</th><th></th></tr></thead><tbody id="trkBody"></tbody></table>
 </section>
 </main>
 
@@ -649,9 +649,12 @@ function saveMeeting(quiet){
 /* ---------------------------------------------------------------- tracker */
 function renderTrk(){
  const b=document.getElementById('trkBody');
- b.innerHTML=DB.meetings.length?DB.meetings.map(m=>{const e=m.editions[m.editions.length-1];const w=e.rows.filter(r=>r.w).length;
-  return `<tr><td><b>${esc(m.project)}</b></td><td>${esc(m.client)}</td><td>${fmtD(m.mdate)}</td><td>${m.editions.length}${m.editions.length>1?' (עודכן '+fmtD(e.date)+')':''}</td><td>${w?`<span class="pill y">${w}</span>`:'—'}</td><td><button class="btn sec" onclick="openUpd('${m.id}')">עדכון</button> <button class="btn sec" style="color:#bc2129;border-color:#e3cfcf" title="מחק סיכום" onclick="delMeeting('${m.id}')">🗑 מחק</button></td></tr>`}).join(''):'<tr><td colspan="6" class="note">עדיין אין סיכומים שמורים.</td></tr>';
+ const list=DB.meetings.filter(m=>!m.cancelled).concat(DB.meetings.filter(m=>m.cancelled)); // cancelled always at the bottom
+ b.innerHTML=list.length?list.map(m=>{const e=m.editions[m.editions.length-1];const w=e.rows.filter(r=>r.w).length;const c=m.cancelled;
+  const st=c?'<span class="pill" style="background:#e9ecef;color:#6b7280;font-weight:600">מבוטל</span>':'<span class="pill" style="background:#e3f4ea;color:#1e7a46">פעיל</span>';
+  return `<tr style="${c?'opacity:.55;background:#f6f6f6':''}"><td><b style="${c?'text-decoration:line-through':''}">${esc(m.project)}</b></td><td>${esc(m.client)}</td><td>${fmtD(m.mdate)}</td><td>${m.editions.length}${m.editions.length>1?' (עודכן '+fmtD(e.date)+')':''}</td><td>${w&&!c?`<span class="pill y">${w}</span>`:'—'}</td><td>${st}</td><td style="white-space:nowrap">${c?'':`<button class="btn sec" onclick="openUpd('${m.id}')">עדכון</button> `}<button class="btn sec" onclick="togCancel('${m.id}')">${c?'↩ החזר לפעיל':'⛔ בטל'}</button> <button class="btn sec" style="color:#bc2129;border-color:#e3cfcf" title="מחק סיכום" onclick="delMeeting('${m.id}')">🗑 מחק</button></td></tr>`}).join(''):'<tr><td colspan="7" class="note">עדיין אין סיכומים שמורים.</td></tr>';
 }
+function togCancel(id){const m=DB.meetings.find(x=>x.id===id);if(!m)return;m.cancelled=!m.cancelled;persist();renderTrk();toast(m.cancelled?'הסיכום סומן כמבוטל - הועבר לתחתית הרשימה':'הסיכום הוחזר לפעיל')}
 function delMeeting(id){const m=DB.meetings.find(x=>x.id===id);if(!m)return;
  ask(`למחוק את הסיכום של "${esc(m.project)}"${m.editions.length>1?' (כולל כל '+m.editions.length+' המהדורות)':''}? אי אפשר לשחזר.`,()=>{DB.meetings=DB.meetings.filter(x=>x.id!==id);if(F.editOf===id){F.editOf=null;F.edition=1;F._savedEd=null}persist();renderTrk();toast('הסיכום נמחק')})}
 function openUpd(id){const m=DB.meetings.find(x=>x.id===id);const e=m.editions[m.editions.length-1];F=JSON.parse(JSON.stringify(e.state));F.tmplPicked=1;F.editOf=id;F.edition=m.editions.length+1;renderAll();show('form');persist()}

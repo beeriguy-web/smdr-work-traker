@@ -632,10 +632,11 @@ async function makePdf(){
  finally{btn.disabled=false;btn.textContent=old}
 }
 function prepareMail(){saveMeeting(true);markSent();saveContactsToSheet();renderSummary();show('sum');const M=window._mail;return {to:F.contacts.map(c=>c.m).filter(Boolean).join(';'),subj:M.subj,body:M.body}}
-function sendMail(){
- saveMeeting(true);markSent();saveContactsToSheet();renderSummary();
- const M=window._mail;const to=F.contacts.map(c=>c.m).filter(Boolean).join(';');
- openMailWithBody(`mailto:${to}?cc=guy@smdrtech.co.il&subject=${encodeURIComponent(M.subj)}`,M.body,'בשדה "מאת" בחר smdr.tech@smdrtech.co.il וצרף את ה-PDF');
+function sendMail(){ // same as the toolbar button: opens Outlook on the web in the shared factory mailbox
+ const m=prepareMail();
+ try{ if(window.top!==window&&window.top.openSharedMail){window.top.openSharedMail(m);return} }catch(e){}
+ const q='to='+encodeURIComponent(m.to.split(';').join(','))+'&cc='+encodeURIComponent('guy@smdrtech.co.il')+'&subject='+encodeURIComponent(m.subj)+'&body='+encodeURIComponent(m.body);
+ window.open('https://outlook.office.com/mail/smdr.tech@smdrtech.co.il/deeplink/compose?'+q,'_blank');
 }
 function copyMail(){const t=window._mail.body;navigator.clipboard.writeText(t).then(()=>toast('נוסח המייל הועתק ✓'),()=>toast('ההעתקה נחסמה - סמן והעתק ידנית'))}
 function saveMeeting(quiet){

@@ -631,6 +631,7 @@ async function makePdf(){
  }catch(e){toast(e&&e.code==='declined'?'ההורדה בוטלה':'שגיאה בהפקת PDF: '+(e.message||e.code||e))}
  finally{btn.disabled=false;btn.textContent=old}
 }
+function prepareMail(){saveMeeting(true);saveContactsToSheet();renderSummary();show('sum');const M=window._mail;return {to:F.contacts.map(c=>c.m).filter(Boolean).join(';'),subj:M.subj,body:M.body}}
 function sendMail(){
  saveMeeting(true);saveContactsToSheet();renderSummary();
  const M=window._mail;const to=F.contacts.map(c=>c.m).filter(Boolean).join(';');

@@ -632,7 +632,7 @@
     </div>
 </div>
 <div class="hidden-view" id="wt-view" style="max-width:1300px;margin:16px auto 0;"><iframe id="wt-frame" title="מעקב עבודות" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#f4f6fa;" src="https://beeriguy-web.github.io/work-traker/"></iframe></div>
-<div class="hidden-view" id="hr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="hr-frame" title="ישיבת היערכות לתכנון" allow="clipboard-write" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="hiarchut.html?v=20261120c"></iframe></div>
+<div class="hidden-view" id="hr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="hr-frame" title="ישיבת היערכות לתכנון" allow="clipboard-write" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="hiarchut.html?v=20261120d"></iframe></div>
 
 <!-- ════ TOAST ════ -->
 <div class="toast-msg" id="toast"></div>
@@ -1963,15 +1963,24 @@ function showView(name) {
     document.getElementById('hr-view').classList.toggle('hidden-view', name !== 'hr' && name !== 'hrtrack');
     if (name === 'hr' || name === 'hrtrack') { try { document.getElementById('hr-frame').contentWindow.location.hash = name === 'hr' ? 'form' : 'trk'; } catch (e) {} }
     document.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t.dataset.v === name));
-    document.getElementById('form-actions').style.display = (name === 'track' || name === 'wt' || name === 'hr' || name === 'hrtrack') ? 'none' : '';
+    document.getElementById('form-actions').style.display = (name === 'track' || name === 'wt' || name === 'hrtrack') ? 'none' : '';
     document.querySelector('.toolbar-title').textContent = VIEW_TITLES[name];
     if (name === 'track') renderTrack();
     if (name === 'hv') setTimeout(() => document.getElementById('hv-project').focus(), 50);
     window.scrollTo(0, 0);
 }
-function actNew()   { currentView === 'hv' ? hvNewForm()     : newForm(); }
-function actPDF()   { currentView === 'hv' ? hvDownloadPDF() : downloadPDF(); }
-function actEmail() { currentView === 'hv' ? hvSendEmail()   : sendEmail(); }
+function hrWin() { try { return document.getElementById('hr-frame').contentWindow; } catch (e) { return null; } }
+function actNew()   { if (currentView === 'hr') { const w = hrWin(); if (w && w.resetForm) w.resetForm(); return; } currentView === 'hv' ? hvNewForm()     : newForm(); }
+function actPDF()   { if (currentView === 'hr') { const w = hrWin(); if (w && w.makePdf) { w.show('sum'); w.makePdf(); } return; } currentView === 'hv' ? hvDownloadPDF() : downloadPDF(); }
+function actEmail() {
+    if (currentView === 'hr') {   // ישיבת היערכות: גוף המייל נבנה בטופס ומועתק ללוח מכאן (כמו בשאר הטפסים)
+        const w = hrWin(); if (!w || !w.prepareMail) return;
+        const m = w.prepareMail(); if (!m) return;
+        openMailWithBody(`mailto:${m.to}?cc=guy@smdrtech.co.il&subject=${encodeURIComponent(m.subj)}`, m.body, 'צרף את קובץ ה-PDF');
+        return;
+    }
+    currentView === 'hv' ? hvSendEmail() : sendEmail();
+}
 </script>
 
 </body>

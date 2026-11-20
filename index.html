@@ -632,7 +632,7 @@
     </div>
 </div>
 <div class="hidden-view" id="wt-view" style="max-width:1300px;margin:16px auto 0;"><iframe id="wt-frame" title="מעקב עבודות" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#f4f6fa;" src="https://beeriguy-web.github.io/work-traker/"></iframe></div>
-<div class="hidden-view" id="hr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="hr-frame" title="ישיבת היערכות לתכנון" allow="clipboard-write" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="hiarchut.html?v=20261120i"></iframe></div>
+<div class="hidden-view" id="hr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="hr-frame" title="ישיבת היערכות לתכנון" allow="clipboard-write" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="hiarchut.html?v=20261120j"></iframe></div>
 
 <!-- ════ TOAST ════ -->
 <div class="toast-msg" id="toast"></div>
@@ -1800,25 +1800,8 @@ function mailHtml(text) {
     });
     return `<div dir="rtl" style="direction:rtl;text-align:right;font-family:Arial,sans-serif;font-size:11pt;">${lines.join('')}</div>`;
 }
-// סיכומי היערכות יוצאים מהתיבה המשותפת של המפעל (מול לקוחות) – נפתחים ב-Outlook באינטרנט בתוך התיבה המשותפת.
-// שאר הטפסים ממשיכים להיפתח ב-Outlook של המחשב (guy@).
-const SHARED_MAILBOX = 'smdr.tech@smdrtech.co.il';
-async function openSharedMail(m) {
-    let copied = false;
-    try {
-        if (navigator.clipboard && window.ClipboardItem) {
-            await navigator.clipboard.write([new ClipboardItem({
-                'text/html': new Blob([mailHtml(m.body)], { type: 'text/html' }),
-                'text/plain': new Blob([m.body], { type: 'text/plain' })
-            })]);
-            copied = true;
-        }
-    } catch (e) { copied = false; }
-    const q = 'to=' + encodeURIComponent(m.to.split(';').join(',')) + '&cc=' + encodeURIComponent('guy@smdrtech.co.il') +
-              '&subject=' + encodeURIComponent(m.subj) + (copied ? '' : '&body=' + encodeURIComponent(m.body));
-    window.open(`https://outlook.office.com/mail/${SHARED_MAILBOX}/deeplink/compose?${q}`, '_blank');
-    toast(copied ? '📋 נפתח מייל מ-' + SHARED_MAILBOX + ' – לחץ בגוף המייל Ctrl+V וצרף את ה-PDF' : 'נפתח מייל מ-' + SHARED_MAILBOX + ' – צרף את ה-PDF');
-}
+// סיכומי היערכות (מול לקוחות): העתק לתיבה המשותפת של המפעל. שאר הטפסים: העתק ל-guy@.
+const HR_CC = 'smdr.tech@smdrtech.co.il';
 async function openMailWithBody(mailtoNoBody, text, extraMsg) {
     let copied = false;
     try {
@@ -1995,7 +1978,7 @@ function actEmail() {
     if (currentView === 'hr') {   // ישיבת היערכות: גוף המייל נבנה בטופס ומועתק ללוח מכאן (כמו בשאר הטפסים)
         const w = hrWin(); if (!w || !w.prepareMail) return;
         const m = w.prepareMail(); if (!m) return;
-        openSharedMail(m);
+        openMailWithBody(`mailto:${m.to}?cc=${HR_CC}&subject=${encodeURIComponent(m.subj)}`, m.body, 'צרף את קובץ ה-PDF');
         return;
     }
     currentView === 'hv' ? hvSendEmail() : sendEmail();

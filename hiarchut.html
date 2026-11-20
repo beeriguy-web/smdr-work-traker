@@ -582,11 +582,14 @@ async function openMailWithBody(mailtoNoBody,text,extraMsg){
 function mailText(waits,ed,R,upd){
  const pr=F.job?F.job:'';
  const subj=`${ed>1?'עדכון - ':''}סיכום ישיבת היערכות לתכנון – ${F.project||''} – ${F.client||''}${pr?' – '+pr:''}`;
+ const when=F.date===today()?'מהיום':'מתאריך '+fmtD(F.date);
  let t=`שלום רב,\n\n`;
- if(ed>1){const u=R.filter((r,i)=>upd[i]).map(r=>r.n);t+=`מצורף סיכום מעודכן (מהדורה ${ed}) של ישיבת ההיערכות לתכנון. אנא ראו PDF מצורף.${u.length?'\nעודכנו סעיפים: '+u.join(', ')+'.':''}\n`}
- else t+=`תודה על הפגישה. מצורף סיכום ישיבת ההיערכות לתכנון. אנא ראו PDF מצורף.\n`;
- t+=`פרויקט: ${F.project||''}\nלקוח: ${F.client||''}${pr?'\nמספר פרויקט: '+pr:''}\nתאריך ישיבה: ${fmtD(F.date)}\n`;
- if(waits.length)t+=`\nכדי להתקדם בתכנון, נבקש להעביר בהקדם תשובות לסעיפים המסומנים בצהוב:\n`+waits.map(r=>`סעיף ${r.n}${MAIL_SEP}${taskText(r)}‏`).join('\n')+'\n';
+ if(ed>1){const u=R.filter((r,i)=>upd[i]).map(r=>r.n);t+=`בהמשך לפגישתנו ${when}, מצורף סיכום מעודכן (מהדורה ${ed}) של ישיבת ההיערכות לתכנון.${u.length?'\nעודכנו סעיפים: '+u.join(', ')+'.':''}\n`}
+ else t+=`בהמשך לפגישתנו ${when}, מצורף סיכום ישיבת ההיערכות לתכנון.\n`;
+ if(waits.length){
+  t+=`\nכדי להתקדם בתכנון, נבקש להעביר בהקדם תשובות לסעיפים המסומנים בצהוב:\n`+waits.map(r=>`סעיף ${r.n}${MAIL_SEP}${taskText(r)}‏`).join('\n')+'\n';
+  t+=`\nנא להעביר את המידע החסר בהקדם כדי להימנע מעיכובים בפרויקט.\n`;
+ }
  t+='\n\n';  // two empty lines, then the Outlook signature
  return {subj,body:t};
 }

@@ -304,7 +304,7 @@ function saveContactsToSheet(){
 }
 let F; // current form state
 function blank(){return{tmpl:'G',client:'',project:'',job:'',date:today(),contacts:[],arch:null,ans:{},extra:[],editOf:null,edition:1}}
-function today(){return new Date().toISOString().slice(0,10)}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')} // local (Israel) date, not UTC
 function load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
 function persist(){try{localStorage.setItem('hiarchut_db_live',JSON.stringify(DB));localStorage.setItem('hiarchut_draft_live',JSON.stringify(F))}catch(e){}}
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
@@ -705,6 +705,7 @@ document.addEventListener('keydown',e=>{
 
 F=load('hiarchut_draft_live')||blank();
 document.getElementById('mdl').onclick=e=>{if(e.target.id==='mdl')closeM()};
+if(!F.editOf&&!F.project&&!Object.keys(F.ans||{}).length)F.date=today(); // untouched draft -> today's date
 renderAll();persist();
 function route(){const h=location.hash.replace('#','');if(['form','sum','trk'].includes(h))show(h)}
 window.addEventListener('hashchange',route);route();

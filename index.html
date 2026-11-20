@@ -312,6 +312,7 @@
         }
 
     </style>
+<script src="cloud.js?v=20261121a"></script>
 </head>
 <body>
 
@@ -646,9 +647,9 @@
         <div style="font-size:.78rem;color:#888;margin-top:8px">שורה באדום = עבר תאריך האספקה והפרויקט עדיין לא הושלם. שורה בצהוב = אספקה בתוך 7 ימים. "ימים" = ימים מאז המסירה.</div>
     </div>
 </div>
-<div class="hidden-view" id="wt-view" style="max-width:1300px;margin:16px auto 0;"><iframe id="wt-frame" title="מעקב עבודות" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#f4f6fa;" src="https://beeriguy-web.github.io/work-traker/"></iframe></div>
-<div class="hidden-view" id="hr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="hr-frame" title="ישיבת היערכות לתכנון" allow="clipboard-write" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="hiarchut.html?v=20261120j"></iframe></div>
-<div class="hidden-view" id="sr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="sr-frame" title="דוח סיור באתר" allow="clipboard-write; web-share" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="siyur.html?v=20261121f"></iframe></div>
+<div class="hidden-view" id="wt-view" style="max-width:1300px;margin:16px auto 0;"><iframe id="wt-frame" title="מעקב עבודות" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#f4f6fa;" src="avodot.html?v=20261121a"></iframe></div>
+<div class="hidden-view" id="hr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="hr-frame" title="ישיבת היערכות לתכנון" allow="clipboard-write" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="hiarchut.html?v=20261121a"></iframe></div>
+<div class="hidden-view" id="sr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="sr-frame" title="דוח סיור באתר" allow="clipboard-write; web-share" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="siyur.html?v=20261121g"></iframe></div>
 
 <!-- ════ TOAST ════ -->
 <div class="toast-msg" id="toast"></div>
@@ -1177,6 +1178,7 @@ function pushToWorkTracker() {
         jobs.unshift(job);
         localStorage.setItem('wt_v4', JSON.stringify(jobs));
         localStorage.setItem('wt_cnt4', String(counter));
+        if (window.Cloud) Cloud.queue(Cloud.WORK, 300);   // → מעקב עבודות in the Google Sheet
     } catch (e) { /* localStorage unavailable — skip silently */ }
 }
 
@@ -1871,7 +1873,16 @@ function hvSendEmail() {
 }
 
 function loadLog() { try { return JSON.parse(localStorage.getItem(HV_LOGKEY) || '[]'); } catch (e) { return window._memLog || []; } }
-function saveLog(l) { try { localStorage.setItem(HV_LOGKEY, JSON.stringify(l)); } catch (e) { window._memLog = l; } updateTrackBadge(); }
+function saveLog(l) { try { localStorage.setItem(HV_LOGKEY, JSON.stringify(l)); } catch (e) { window._memLog = l; } updateTrackBadge(); if (window.Cloud) Cloud.queue(HO_CLOUD); }
+/* מעקב מסירות ↔ Google Sheet (cloud.js) */
+const HO_CLOUD = {
+    name: 'handover',
+    list: () => loadLog().filter(r => !r.demo),
+    setList: l => { try { localStorage.setItem(HV_LOGKEY, JSON.stringify(l)); } catch (e) { window._memLog = l; } updateTrackBadge(); },
+    onChange: () => { if (currentView === 'track') renderTrack(); },
+    cols: r => [['פרויקט', r.data['hv-project']], ['לקוח', r.data['hv-client']], ['מספר', r.data['hv-wnum'] ? 'PR' + r.data['hv-wnum'] : ''], ['נמסר', r.sent], ['אספקה', r.data['hv-d-supply'] || ''], ['סטטוס', r.status], ['הערות', r.notes || '']]
+};
+window.addEventListener('load', () => { if (window.Cloud) setTimeout(() => { Cloud.sync(HO_CLOUD, { quiet: true }); Cloud.sync(Cloud.WORK, { quiet: true }); }, 800); });
 function hvLogSend(d) {
     const log = loadLog();
     const key = (d['hv-project'] + '|' + d['hv-wnum']).trim();
@@ -1986,7 +1997,8 @@ function showView(name) {
     document.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t.dataset.v === name));
     document.getElementById('form-actions').style.display = (name === 'track' || name === 'wt' || name === 'hrtrack' || name === 'srtrack') ? 'none' : '';
     document.querySelector('.toolbar-title').textContent = VIEW_TITLES[name];
-    if (name === 'track') renderTrack();
+    if (name === 'track') { renderTrack(); if (window.Cloud) Cloud.sync(HO_CLOUD); }
+    if (name === 'wt') { try { const w = document.getElementById('wt-frame').contentWindow; if (w && w.cloudSync) w.cloudSync(); } catch (e) {} }
     if (name === 'hv') setTimeout(() => document.getElementById('hv-project').focus(), 50);
     window.scrollTo(0, 0);
 }

@@ -125,6 +125,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="cloud.js?v=20261121a"></script>
 </head>
 <body>
 <header class="top">
@@ -306,12 +307,17 @@ let F; // current form state
 function blank(){return{tmpl:'G',client:'',project:'',job:'',date:today(),contacts:[],arch:null,ans:{},extra:[],editOf:null,edition:1}}
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')} // local (Israel) date, not UTC
 function load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
-function persist(){try{localStorage.setItem('hiarchut_db_live',JSON.stringify(DB));localStorage.setItem('hiarchut_draft_live',JSON.stringify(F))}catch(e){}}
+function persist(){try{localStorage.setItem('hiarchut_db_live',JSON.stringify(DB));localStorage.setItem('hiarchut_draft_live',JSON.stringify(F))}catch(e){}if(window.Cloud)Cloud.queue(HR_CLOUD,2500)}
+/* מעקב היערכות ↔ Google Sheet (cloud.js): one sheet row per meeting (all its editions inside) */
+const HR_CLOUD={name:'hiarchut',list:()=>DB.meetings,
+ setList:l=>{DB.meetings=l;try{localStorage.setItem('hiarchut_db_live',JSON.stringify(DB))}catch(e){}},
+ onChange:()=>{if(document.getElementById('v-trk').classList.contains('on'))renderTrk()},
+ cols:m=>{const e=m.editions[m.editions.length-1]||{};const st={draft:'טיוטה',sent:'נשלח ללקוח',cancelled:'מבוטל'}[m.status||(m.cancelled?'cancelled':'draft')];return[['פרויקט',m.project],['לקוח',m.client],['תאריך ישיבה',m.mdate],['מהדורות',m.editions.length],['עודכן',e.date||''],['ממתין לתשובה',(e.rows||[]).filter(r=>r.w).length],['סטטוס',st]]}};
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function fmtD(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return `${+d}.${+m}.${y.slice(2)}`}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),2200)}
 function tog(h){h.parentElement.classList.toggle('closed')}
-function show(v){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(v==='sum')renderSummary();if(v==='trk')renderTrk();scrollTo(0,0)}
+function show(v){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(v==='sum')renderSummary();if(v==='trk'){renderTrk();if(window.Cloud)Cloud.sync(HR_CLOUD)}scrollTo(0,0)}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 
 /* ---------------------------------------------------------------- answers */
@@ -716,6 +722,7 @@ F=load('hiarchut_draft_live')||blank();
 document.getElementById('mdl').onclick=e=>{if(e.target.id==='mdl')closeM()};
 if(!F.editOf&&!F.project&&!Object.keys(F.ans||{}).length)F.date=today(); // untouched draft -> today's date
 renderAll();persist();
+if(window.Cloud)setTimeout(()=>Cloud.sync(HR_CLOUD,{quiet:true}),600);
 function route(){const h=location.hash.replace('#','');if(['form','sum','trk'].includes(h))show(h)}
 window.addEventListener('hashchange',route);route();
 </script>

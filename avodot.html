@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="מעקב עבודות">
+<meta name="theme-color" content="#BC2129">
+<title>מעקב עבודות</title>
+<script>
+const manifestData={name:"מעקב עבודות",short_name:"עבודות",start_url:"./",display:"standalone",background_color:"#f4f6fa",theme_color:"#BC2129",dir:"rtl",lang:"he",icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23BC2129'/%3E%3Ctext x='96' y='130' font-size='110' text-anchor='middle' fill='white'%3E📥%3C/text%3E%3C/svg%3E",sizes:"192x192",type:"image/svg+xml"}]};
+const mblob=new Blob([JSON.stringify(manifestData)],{type:'application/json'});
+document.addEventListener('DOMContentLoaded',()=>{const l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(mblob);document.head.appendChild(l);});
+</script>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23BC2129'/%3E%3Ctext x='90' y='125' font-size='100' text-anchor='middle' fill='white'%3E📥%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style>
+:root{
+  --bg:#f4f6fa;--white:#fff;--border:#dde2ec;--border-light:#eef1f7;
+  --text:#1a1f36;--text-mid:#4a5568;--text-dim:#8896b3;
+  --accent:#BC2129;--accent-light:#FBE4E4;
+  --done-bg:#f0fdf4;--done-text:#16a34a;--done-border:#bbf7d0;
+  --open-bg:#fff7ed;--open-text:#c2410c;--open-border:#fed7aa;
+  --shadow:0 1px 4px rgba(26,31,54,.07);--radius:12px;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;}
+
+/* TOPBAR */
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 16px;padding-top:var(--safe-top);position:sticky;top:0;z-index:50;box-shadow:var(--shadow);}
+.topbar-inner{display:flex;align-items:center;justify-content:space-between;height:56px;}
+.logo{font-size:16px;font-weight:800;color:var(--accent);}
+.logo span{color:var(--text-dim);font-weight:400;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#d1d5db;}
+.sync-dot.synced{background:#16a34a;}
+.sync-dot.syncing{background:#f59e0b;animation:blink .7s infinite;}
+.sync-dot.error{background:#ef4444;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.settings-btn{background:transparent;border:1px solid var(--border);border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;}
+
+/* STATS */
+.stats-bar{display:flex;gap:8px;padding:10px 16px;background:var(--white);border-bottom:1px solid var(--border-light);}
+.stat-chip{flex:1;background:var(--bg);border-radius:10px;padding:8px 10px;text-align:center;}
+.stat-chip .sv{font-size:20px;font-weight:800;color:var(--text);}
+.stat-chip .sl{font-size:10px;color:var(--text-dim);font-weight:600;margin-top:1px;}
+.stat-chip.done .sv{color:var(--done-text);}
+.stat-chip.open-s .sv{color:#f59e0b;}
+
+/* CONTAINER */
+.container{padding:14px 14px calc(90px + var(--safe-bottom));}
+
+/* VOICE */
+.voice-card{background:linear-gradient(135deg,#8A1920,#BC2129);border-radius:16px;padding:16px 18px;margin-bottom:14px;display:flex;align-items:center;gap:14px;color:white;box-shadow:0 4px 16px rgba(188,33,41,.35);}
+.mic-btn{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.4);cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white;touch-action:manipulation;transition:transform .15s;}
+.mic-btn:active{transform:scale(.93);}
+.mic-btn.listening{background:#ef4444;border-color:#fca5a5;animation:pulse 1.4s ease-in-out infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5);}50%{box-shadow:0 0 0 14px rgba(239,68,68,0);}}
+.voice-info{flex:1;}
+.voice-title{font-size:14px;font-weight:700;margin-bottom:2px;}
+.voice-hint{font-size:11px;opacity:.75;line-height:1.5;}
+.voice-st{font-size:12px;font-weight:600;margin-top:5px;opacity:.9;}
+.vstep{flex:1;text-align:center;padding:6px 4px;border-radius:8px;font-size:11px;font-weight:700;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);transition:all .2s;}
+.vstep.active{background:rgba(255,255,255,0.35);color:white;}
+.vstep.done{background:rgba(0,200,83,0.4);color:white;}
+
+/* FILTER TABS */
+.filter-tabs{display:flex;background:var(--white);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:12px;gap:4px;}
+.ftab{flex:1;padding:9px 6px;border-radius:9px;border:none;background:transparent;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;color:var(--text-dim);cursor:pointer;transition:all .15s;touch-action:manipulation;}
+.ftab.active{background:var(--accent);color:white;box-shadow:0 2px 8px rgba(188,33,41,.3);}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:8px;margin-bottom:12px;align-items:center;}
+.search-wrap{flex:1;position:relative;}
+.search-wrap input{width:100%;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px 10px 36px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--text);direction:rtl;}
+.search-wrap input:focus{outline:none;border-color:var(--accent);}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-dim);font-size:14px;pointer-events:none;}
+.add-btn{width:44px;height:44px;border-radius:12px;border:none;background:var(--accent);color:white;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(188,33,41,.3);flex-shrink:0;touch-action:manipulation;}
+@media(max-width:767px){.add-btn{display:none;}}
+
+/* ── TABLE (desktop) ── */
+.table-card{background:var(--white);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);display:none;}
+.table-card.show{display:block;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:10px 14px;background:#f8fafc;text-align:right;font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;}
+thead th:hover{color:var(--accent);}
+tbody tr{border-bottom:1px solid var(--border-light);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#f8faff;}
+tbody tr.done-row{background:var(--done-bg);}
+tbody tr.done-row td{opacity:.75;}
+td{padding:11px 14px;font-size:13px;vertical-align:middle;}
+.td-date{font-size:12px;color:var(--text-mid);white-space:nowrap;}
+.td-cust{font-weight:700;}
+.td-proj{color:var(--accent);font-size:13px;}
+.td-desc{color:var(--text-mid);max-width:260px;}
+
+/* STATUS TOGGLE — works both directions */
+.status-toggle{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:100px;border:1px solid;
+  font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .18s;white-space:nowrap;
+  background:transparent;font-family:'Heebo',sans-serif;
+  touch-action:manipulation;
+}
+.status-toggle.done{background:var(--done-bg);color:var(--done-text);border-color:var(--done-border);}
+.status-toggle.done:hover,.status-toggle.done:active{background:#dcfce7;transform:scale(.97);}
+.status-toggle.open{background:var(--open-bg);color:var(--open-text);border-color:var(--open-border);}
+.status-toggle.open:hover,.status-toggle.open:active{background:#ffedd5;transform:scale(.97);}
+
+.row-actions{display:flex;gap:4px;justify-content:flex-end;}
+.icon-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);touch-action:manipulation;}
+.icon-btn:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
+.icon-btn.del:hover{background:#fff1f2;border-color:#fecdd3;color:#e11d48;}
+
+/* ── CARDS (mobile) ── */
+.cards-list{display:block;}
+.job-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow);}
+.job-card.done-card{background:var(--done-bg);border-color:var(--done-border);}
+.job-card.done-card .jc-cust,.job-card.done-card .jc-proj,.job-card.done-card .jc-desc{opacity:.7;}
+.jc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.jc-cust{font-size:15px;font-weight:800;}
+.jc-date{font-size:11px;color:var(--text-dim);white-space:nowrap;}
+.jc-proj{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:4px;}
+.jc-desc{font-size:13px;color:var(--text-mid);line-height:1.5;margin-bottom:4px;}
+.jc-notes{font-size:12px;color:var(--text-dim);line-height:1.5;}
+.jc-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:8px;}
+.jc-actions{display:flex;gap:6px;}
+
+/* EMPTY */
+.empty{text-align:center;padding:48px 20px;color:var(--text-dim);}
+.empty-icon{font-size:44px;margin-bottom:12px;}
+.empty-title{font-size:16px;font-weight:700;color:var(--text-mid);margin-bottom:6px;}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(20px + var(--safe-bottom));left:50%;transform:translateX(-50%);background:var(--accent);color:white;border:none;border-radius:100px;padding:14px 28px;font-family:'Heebo',sans-serif;font-size:15px;font-weight:700;box-shadow:0 4px 20px rgba(188,33,41,.45);cursor:pointer;display:flex;align-items:center;gap:8px;touch-action:manipulation;z-index:40;}
+
+/* OVERLAY + SHEET */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:200;display:none;align-items:flex-end;justify-content:center;}
+.overlay.open{display:flex;}
+.sheet{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:20px 20px calc(20px + var(--safe-bottom));max-height:92vh;overflow-y:auto;}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+.sheet-title{font-size:17px;font-weight:800;margin-bottom:18px;}
+.fgroup{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.fgroup label{font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;}
+.fgroup input,.fgroup select{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 12px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--text);direction:rtl;width:100%;}
+.fgroup input:focus,.fgroup select:focus{outline:none;border-color:var(--accent);background:white;}
+.btn-row{display:flex;gap:10px;margin-top:6px;}
+.btn{flex:1;padding:13px;border-radius:12px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-weight:700;font-size:14px;touch-action:manipulation;}
+.btn-primary{background:var(--accent);color:white;box-shadow:0 2px 10px rgba(188,33,41,.3);}
+.btn-outline{background:var(--bg);border:1px solid var(--border);color:var(--text-mid);}
+
+/* SETTINGS */
+.settings-row{padding:14px 0;border-bottom:1px solid var(--border-light);}
+.settings-row:last-child{border-bottom:none;}
+.settings-label{font-size:14px;font-weight:700;margin-bottom:3px;}
+.settings-sub{font-size:12px;color:var(--text-dim);}
+.url-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:12px;color:var(--text);direction:ltr;margin-top:8px;}
+.url-input:focus{outline:none;border-color:var(--accent);}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(90px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(30px);background:#1e293b;color:white;padding:11px 18px;border-radius:100px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:all .3s;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.25);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Always show cards, never table */
+.table-card{ display:none !important; }
+.cards-list{ display:block !important; }
+@media(min-width:768px){
+  .fab{display:none;}
+  .container{padding:20px 24px 40px;}
+  .job-card{ max-width: 860px; }
+}
+
+/* ══ עיצוב בסגנון "מעקב מסירות" ══ */
+.wt-card{max-width:1250px;margin:0 auto 20px;background:#fff;border-radius:10px;box-shadow:0 3px 16px rgba(0,0,0,.1);overflow:hidden;}
+.wt-head{background:#BC2129;color:#fff;text-align:center;padding:16px 20px;}
+.wt-head .t1{font-size:1.3rem;font-weight:800;}
+.wt-head .t2{font-size:.9rem;opacity:.85;margin-top:2px;}
+.wt-body{padding:16px 18px 20px;}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.kpi{flex:1 1 140px;background:#f4f7fb;border-radius:8px;padding:10px 14px;border-right:4px solid #BC2129;font-size:14px;color:#333;}
+.kpi b{display:block;font-size:1.6rem;color:#BC2129;line-height:1.2;}
+.kpi.orange{border-color:#c2410c;} .kpi.orange b{color:#c2410c;}
+.kpi.green{border-color:#16a34a;} .kpi.green b{color:#16a34a;}
+.kpi.red{border-color:#e11d48;} .kpi.red b{color:#e11d48;}
+.wt-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+.wt-bar input,.wt-bar select{font-family:'Heebo',sans-serif;font-size:14px;border:1px solid #cfd8e3;border-radius:6px;padding:7px 10px;background:#fff;}
+.wt-bar input{width:260px;max-width:100%;}
+.wt-bar .sp{flex:1;}
+@media(min-width:768px){.wt-mobile-only{display:none !important;}}
+.wt-btn{font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;border-radius:6px;padding:7px 14px;cursor:pointer;border:1px solid;}
+.wt-btn.green{background:#fff;color:#16a34a;border-color:#16a34a;}
+.wt-btn.red{background:#BC2129;color:#fff;border-color:#BC2129;}
+.track-tbl{width:100%;border-collapse:collapse;font-size:14px;}
+.track-tbl th{background:#BC2129;color:#fff;padding:8px 6px;border:1px solid #D6343E;text-align:center;white-space:nowrap;font-weight:700;cursor:pointer;}
+.track-tbl td{border:1px solid #e3e8ef;padding:7px 8px;vertical-align:middle;}
+.track-tbl tbody tr:nth-child(even) td{background:#fafbfd;}
+.track-tbl tr.done-row td{background:#f0fdf4 !important;}
+.track-tbl .num{text-align:center;color:#888;width:36px;}
+.track-tbl .c{text-align:center;}
+.track-tbl .status-toggle{font-size:12px;padding:4px 10px;}
+#wtTableSlot .table-card{border:none;box-shadow:none;border-radius:0;overflow-x:auto;}
+.wt-note{font-size:.78rem;color:#888;margin-top:8px;}
+.voice-card{max-width:1250px;margin:0 auto 14px !important;}
+.stats-bar{display:none !important;}
+@media(min-width:768px){ .table-card{display:block !important;} .cards-list{display:none !important;} .filter-tabs{display:none;} }
+@media(max-width:767px){ .wt-desktop{display:none;} }
+</style>
+<script src="cloud.js?v=20261121a"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="logo">מעקב עבודות <span>pro</span></div>
+    <div class="topbar-right">
+      <div class="sync-dot" id="syncDot" style="display:none"></div>
+      
+    </div>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-chip"><div class="sv" id="st-total">0</div><div class="sl">סה"כ</div></div>
+  <div class="stat-chip open-s"><div class="sv" id="st-open">0</div><div class="sl">לא בוצע</div></div>
+  <div class="stat-chip done"><div class="sv" id="st-done">0</div><div class="sl">בוצע</div></div>
+</div>
+
+<div class="container">
+
+  <!-- VOICE -->
+  <div class="voice-card">
+    <div class="voice-info" style="width:100%">
+      <div class="voice-title">הוספה קולית</div>
+      <div id="voiceSteps">
+        <!-- Step indicators -->
+        <div style="display:flex;gap:8px;margin:10px 0;">
+          <div class="vstep active" id="vstep1">1 שם לקוח</div>
+          <div class="vstep" id="vstep2">2 פרויקט</div>
+          <div class="vstep" id="vstep3">3 תיאור</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="mic-btn" id="micBtn" onclick="toggleListen()">🎤</button>
+          <div>
+            <div class="voice-st" id="voiceSt">לחץ להקלטת שם הלקוח</div>
+            <div class="voice-box" id="voiceBox"></div>
+          </div>
+        </div>
+        <div id="voicePreview" style="display:none;margin-top:10px;background:rgba(255,255,255,0.15);border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.8;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wt-card wt-desktop">
+    <div class="wt-head">
+      <div class="t1">מעקב עבודות למשרד הטכני</div>
+      <div class="t2">כל הזמנת עבודה שנשלחת במייל נרשמת כאן אוטומטית</div>
+    </div>
+    <div class="wt-body">
+      <div class="kpis">
+        <div class="kpi"><b id="k-total">0</b>סה"כ עבודות</div>
+        <div class="kpi orange"><b id="k-open">0</b>לא נפתחה עבודה בפריוריטי</div>
+        <div class="kpi red"><b id="k-old">0</b>פתוחות מעל 14 יום</div>
+        <div class="kpi green"><b id="k-done">0</b>נפתחה עבודה בפריוריטי</div>
+      </div>
+      <div class="wt-bar">
+        <input type="text" id="searchIn2" placeholder="🔍 חיפוש לקוח / פרויקט / תיאור" oninput="document.getElementById('searchIn').value=this.value;render()">
+        <select id="filterSel" onchange="setFilter(this.value)">
+          <option value="all">כל הסטטוסים</option>
+          <option value="open">לא נפתחה עבודה בפריוריטי</option>
+          <option value="done">נפתחה עבודה בפריוריטי</option>
+        </select>
+        <span class="sp"></span>
+        <button class="wt-btn red" onclick="openAdd()">＋ עבודה חדשה</button>
+        <button class="wt-btn green" onclick="doExport()">⬇ ייצוא לאקסל</button>
+      </div>
+      <div id="wtTableSlot"></div>
+      <div class="wt-note">שורה בירוק = נפתחה עבודה בפריוריטי. לחיצה על הסטטוס מחליפה אותו. "ימים" = ימים מאז המסירה.</div>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filter-tabs">
+    <button class="ftab active" id="fb-all" onclick="setFilter('all')">הכל</button>
+    <button class="ftab" id="fb-open" onclick="setFilter('open')">לא נפתחה עבודה בפריוריטי</button>
+    <button class="ftab" id="fb-done" onclick="setFilter('done')">נפתחה עבודה בפריוריטי ✓</button>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar wt-mobile-only">
+    <div class="search-wrap">
+      <input type="text" id="searchIn" placeholder="חיפוש..." oninput="render()">
+      <span class="search-icon">🔍</span>
+    </div>
+    <button class="add-btn" onclick="openAdd()">＋</button>
+    <button onclick="doExport()" style="background:white;border:1px solid var(--border);border-radius:12px;height:44px;padding:0 12px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">📊 Excel</button>
+  </div>
+
+  <!-- MOBILE CARDS -->
+  <div class="cards-list" id="cardsList"></div>
+
+  <!-- DESKTOP TABLE -->
+  <div class="table-card" id="tableCard">
+    <table class="track-tbl">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th onclick="sortBy('date')">תאריך מסירה ↕</th>
+          <th onclick="sortBy('cust')">שם הלקוח ↕</th>
+          <th onclick="sortBy('proj')">שם הפרויקט ↕</th>
+          <th>תיאור העבודה</th>
+          <th>ימים</th>
+          <th style="text-align:center">סטטוס</th>
+          <th onclick="sortBy('closedDate')">תאריך סגירה ↕</th>
+          <th>הערות</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="empty" id="emptyEl" style="display:none">
+    <div class="empty-icon">📋</div>
+    <div class="empty-title">אין עבודות להצגה</div>
+  </div>
+
+</div>
+
+<!-- FAB mobile -->
+<button class="fab" onclick="openAdd()">＋ עבודה חדשה</button>
+
+<!-- ADD/EDIT SHEET -->
+<div class="overlay" id="addOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheetTitle">➕ עבודה חדשה</div>
+    <div class="fgroup"><label>תאריך מסירה *</label><input type="date" id="f-date" required></div>
+    <div class="fgroup"><label>שם הלקוח *</label><input type="text" id="f-cust" placeholder="דנה סיבוס"></div>
+    <div class="fgroup"><label>שם הפרויקט</label><input type="text" id="f-proj" placeholder="נתניה 1011"></div>
+    <div class="fgroup"><label>תיאור העבודה</label><input type="text" id="f-desc" placeholder="משטח פיגום + פיר דיחוס"></div>
+    <div class="fgroup"><label>סטטוס</label>
+      <select id="f-status">
+        <option value="open">🔄 לא בוצע</option>
+        <option value="done">✅ בוצע</option>
+      </select>
+    </div>
+    <div class="fgroup"><label>הערות</label><input type="text" id="f-notes" placeholder="פרטים נוספים..."></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveJob()">💾 שמור</button>
+      <button class="btn btn-outline" onclick="closeOverlay('addOverlay')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="overlay" id="settingsOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">⚙️ הגדרות</div>
+    <div class="settings-row">
+      <div class="settings-label">☁️ Google Sheets URL</div>
+      <div class="settings-sub">הדבק את ה-Web App URL מ-Apps Script</div>
+      <input type="url" class="url-input" id="sheetsUrl" placeholder="https://script.google.com/macros/s/...">
+    </div>
+    <div class="settings-row">
+      <div class="settings-label">סטטוס</div>
+      <div class="settings-sub" id="connStatus">לא מחובר</div>
+    </div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-primary" onclick="saveSettings()">שמור</button>
+      <button class="btn btn-outline" onclick="doExport()">📊 ייצא Excel</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="closeOverlay('settingsOverlay')">סגור</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────
+let jobs = JSON.parse(localStorage.getItem('wt_v4') || '[]');
+let counter = parseInt(localStorage.getItem('wt_cnt4') || '0');
+let sheetsUrl = '';   // old per-app Sheets link – replaced by cloud.js (the shared contacts Sheet, tab "מעקב עבודות")
+let currentFilter = 'all';
+let sortField = 'date';
+let sortDir = 1;
+let editId = null;
+let recog = null;
+let listening = false;
+
+// ── INIT ──────────────────────────────────────────────────────
+window.onload = () => {
+  // strip _new flag on reload so jobs sort by date after refresh
+  const hadNew = jobs.some(j=>j._new);
+  jobs.forEach(j=>{ delete j._new; });
+  if(hadNew) save();
+  sortField = 'date'; sortDir = 1;
+  document.getElementById('f-date').valueAsDate = new Date();
+  cloudSync();
+  const slot=document.getElementById('wtTableSlot'); if(slot) slot.appendChild(document.getElementById('tableCard'));
+  render(); updateStats(); initSpeech();
+};
+
+function save() {
+  localStorage.setItem('wt_v4', JSON.stringify(jobs));
+  localStorage.setItem('wt_cnt4', counter);
+  if (window.Cloud) Cloud.queue(WK);
+}
+/* מעקב עבודות ↔ Google Sheet (cloud.js) */
+const WK = Object.assign({}, window.Cloud ? Cloud.WORK : {}, {
+  setList: l => { Cloud.WORK.setList(l); jobs = l; counter = parseInt(localStorage.getItem('wt_cnt4') || '0'); },
+  onChange: () => { render(); updateStats(); }
+});
+function cloudSync() { if (window.Cloud) Cloud.sync(WK); }
+
+function loadSample() {
+  [
+    {date:'10/02/26',cust:'דנה סיבוס',proj:'קדמת גון',desc:'נגטיבים למעלית',status:'done'},
+    {date:'10/02/26',cust:'דנה סיבוס',proj:"ז'בוטינסקי 135+133",desc:'קורות למשטחי פיגום',status:'open'},
+    {date:'10/02/26',cust:'גילאן',proj:'אלעד',desc:'חתך טיפוסי לאישור',status:'done'},
+    {date:'11/02/26',cust:'דנה סיבוס',proj:'גרנד חולון',desc:'קורות למשטח',status:'open'},
+    {date:'',cust:'דנה סיבוס',proj:"ביג פ'ת",desc:'קורות למשטחים הזמנה 3',status:'open'},
+    {date:'14/04/26',cust:'דנה סיבוס',proj:'נתניה 1011',desc:'משטח פיגום + פיר דיחוס',status:'done'},
+    {date:'03/05/26',cust:'דנה סיבוס',proj:'רעננה',desc:'משטחי פיגום לפירי מעליות',status:'open'},
+    {date:'03/05/26',cust:'דנה סיבוס',proj:'רנגת',desc:'משטחי פיגום לפירי מעליות',status:'open'},
+    {date:'03/05/26',cust:'דנה סיבוס',proj:"ג' סיטי תל השומר",desc:'משטחי פיגום בפיר מעלית',status:'open'},
+  ].forEach((r,i)=>{counter++;jobs.push({id:Date.now()+i,num:counter,...r,notes:''});});
+  save();
+}
+
+// ── PR FORMAT ────────────────────────────────────────────────
+const HEB_NUM_MAP = {
+  'אחד':1,'אחת':1,'שניים':2,'שתיים':2,'שני':2,'שתי':2,'שנים':2,
+  'שלושה':3,'שלוש':3,'ארבעה':4,'ארבע':4,'חמישה':5,'חמש':5,
+  'שישה':6,'שש':6,'שבעה':7,'שבע':7,'שמונה':8,
+  'תשעה':9,'תשע':9,'עשרה':10,'עשר':10,
+  'עשרים':20,'שלושים':30,'ארבעים':40,'חמישים':50,
+  'שישים':60,'שבעים':70,'שמונים':80,'תשעים':90,
+  'מאה':100,'מאתיים':200
+};
+const HEB_MULTI = {
+  'אחד עשר':11,'אחת עשרה':11,'שניים עשר':12,'שתים עשרה':12,'שנים עשר':12,
+  'שלושה עשר':13,'שלוש עשרה':13,'ארבעה עשר':14,'ארבע עשרה':14,
+  'חמישה עשר':15,'חמש עשרה':15,'שישה עשר':16,'שש עשרה':16,
+  'שבעה עשר':17,'שבע עשרה':17,'שמונה עשר':18,'תשעה עשר':19,'תשע עשרה':19,
+  'שלוש מאות':300,'שלושה מאות':300,'ארבע מאות':400,'ארבעה מאות':400,
+  'חמש מאות':500,'חמישה מאות':500,'שש מאות':600,'שישה מאות':600,
+  'שבע מאות':700,'שבעה מאות':700,'שמונה מאות':800,'תשע מאות':900,'תשעה מאות':900
+};
+
+function parseHebrewNum(str) {
+  str = str.trim();
+  if (!str) return null;
+  if (/^\d+$/.test(str)) return parseInt(str);
+  for (const [phrase, val] of Object.entries(HEB_MULTI)) {
+    str = str.replace(new RegExp(phrase, 'g'), ' ' + val + ' ');
+  }
+  str = str.replace(/\bו(\S)/g, '$1').replace(/\bו\b/g, '');
+  let total = 0, found = false;
+  for (const token of str.split(/\s+/)) {
+    if (!token) continue;
+    const n = parseInt(token);
+    if (!isNaN(n)) { total += n; found = true; continue; }
+    const v = HEB_NUM_MAP[token];
+    if (v !== undefined) { total += v; found = true; }
+  }
+  return found ? total : null;
+}
+
+function formatProjectName(text) {
+  if (!text) return text;
+  const prMatch = text.trim().match(/^(פי\s*אר|p\.?\s*r\.?)\s*/i);
+  if (!prMatch) return text;
+  let rest = text.trim().slice(prMatch[0].length).trim();
+
+  // digits already present
+  const dg = rest.match(/\d+/g);
+  if (dg && dg.length >= 2) return `PR${dg[0]}-${dg[1]}`;
+
+  // comma / "מקף" separator
+  const parts = rest.split(/[,،]\s*|\s+מקף\s+/);
+  if (parts.length >= 2) {
+    const n1 = parseHebrewNum(parts[0]), n2 = parseHebrewNum(parts[1]);
+    if (n1 !== null && n2 !== null) return `PR${n1}-${n2}`;
+  }
+
+  // smart split: unit word followed by a new tens/hundreds word
+  const UNITS = new Set(['אחד','אחת','שניים','שתיים','שני','שתי','שנים','שלושה','שלוש','ארבעה','ארבע','חמישה','חמש','שישה','שש','שבעה','שבע','שמונה','תשעה','תשע']);
+  const STARTS = new Set(['מאה','מאתיים','עשרים','שלושים','ארבעים','חמישים','שישים','שבעים','שמונים','תשעים']);
+  const words = rest.split(/\s+/);
+  for (let i = 1; i < words.length; i++) {
+    const cur = words[i].replace(/^ו/, ''), prev = words[i-1].replace(/^ו/, '');
+    if (STARTS.has(cur) && UNITS.has(prev)) {
+      const n1 = parseHebrewNum(words.slice(0,i).join(' '));
+      const n2 = parseHebrewNum(words.slice(i).join(' '));
+      if (n1 !== null && n2 !== null) return `PR${n1}-${n2}`;
+    }
+  }
+  return text;
+}
+
+// ── SPEECH ───────────────────────────────────────────────────
+// ── 3-STEP VOICE ─────────────────────────────────────────────
+let voiceStep = 1;
+let voiceData = {cust:'',proj:'',desc:''};
+const stepHints = {1:'לחץ והקלט שם לקוח',2:'לחץ והקלט שם פרויקט',3:'לחץ והקלט תיאור עבודה'};
+
+function initSpeech() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { document.getElementById('voiceSt').textContent='⚠️ נא השתמש ב-Chrome'; return; }
+  recog = new SR(); recog.lang='he-IL'; recog.continuous=false; recog.interimResults=true;
+  recog.onresult = e => {
+    let fin='',int='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) fin+=e.results[i][0].transcript;
+      else int+=e.results[i][0].transcript;
+    }
+    showBox(fin||int);
+    if(fin) confirmStep(fin.trim());
+  };
+  recog.onerror = ()=>{ stopListen(); setSt(stepHints[voiceStep]); };
+  recog.onend = ()=>{ if(listening) stopListen(); };
+}
+
+function toggleListen(){ listening?stopListen():startListen(); }
+
+function startListen(){
+  if(!recog){toast('נא פתח ב-Chrome');return;}
+  listening=true;
+  document.getElementById('micBtn').classList.add('listening');
+  document.getElementById('micBtn').textContent='⏹';
+  setSt('🔴 מאזין...');
+  showBox('');
+  try{recog.start();}catch(e){}
+}
+
+function stopListen(){
+  listening=false;
+  document.getElementById('micBtn').classList.remove('listening');
+  document.getElementById('micBtn').textContent='🎤';
+  try{recog.stop();}catch(e){}
+}
+
+function setSt(t){document.getElementById('voiceSt').textContent=t;}
+function showBox(t){const b=document.getElementById('voiceBox');b.style.display=t?'block':'none';b.textContent=t;}
+
+function confirmStep(text){
+  stopListen();
+  showBox('');
+  if(voiceStep===1){
+    voiceData.cust=text;
+    markStep('vstep1','✓ '+text.substring(0,12));
+    document.getElementById('vstep2').classList.add('active');
+    voiceStep=2; setSt(stepHints[2]);
+  } else if(voiceStep===2){
+    voiceData.proj=formatProjectName(text);
+    markStep('vstep2','✓ '+text.substring(0,12));
+    document.getElementById('vstep3').classList.add('active');
+    voiceStep=3; setSt(stepHints[3]);
+  } else if(voiceStep===3){
+    voiceData.desc=text;
+    markStep('vstep3','✓ '+text.substring(0,12));
+    setSt('✅ נשמר!');
+    const today=fmtDate(new Date().toISOString().split('T')[0]);
+    addJob({date:today,cust:voiceData.cust,proj:voiceData.proj,desc:voiceData.desc,status:'open',notes:''});
+    setTimeout(resetVoice,2000);
+  }
+  updatePreview();
+}
+
+function markStep(id,label){
+  const el=document.getElementById(id);
+  el.classList.remove('active'); el.classList.add('done');
+  el.textContent=label;
+}
+
+function updatePreview(){
+  const p=document.getElementById('voicePreview');
+  if(!p) return;
+  p.style.display='block';
+  p.innerHTML=`${voiceData.cust?`<b>לקוח:</b> ${voiceData.cust}<br>`:''}${voiceData.proj?`<b>פרויקט:</b> ${voiceData.proj}<br>`:''}${voiceData.desc?`<b>תיאור:</b> ${voiceData.desc}`:''}`;
+}
+
+function resetVoice(){
+  voiceStep=1; voiceData={cust:'',proj:'',desc:''};
+  const steps=[['vstep1','1 שם לקוח'],['vstep2','2 פרויקט'],['vstep3','3 תיאור']];
+  steps.forEach(([id,label])=>{
+    const el=document.getElementById(id);
+    if(el){el.classList.remove('active','done');el.textContent=label;}
+  });
+  document.getElementById('vstep1').classList.add('active');
+  const p=document.getElementById('voicePreview');
+  if(p) p.style.display='none';
+  setSt(stepHints[1]);
+}
+
+// ── CRUD ─────────────────────────────────────────────────────
+function addJob({date,cust,proj,desc,status,notes}){
+  counter++;
+  const j={id:Date.now(),num:counter,date:date||'',cust:cust.trim(),proj:(proj||'').trim(),desc:(desc||'').trim(),status:status||'open',notes:notes||'',_new:true};
+  jobs.unshift(j);
+  save(); render(); updateStats();
+  toast('✅ נוספה: '+cust);
+  if(sheetsUrl) pushToSheets(j);
+}
+
+function openAdd(){
+  editId=null;
+  document.getElementById('sheetTitle').textContent='➕ עבודה חדשה';
+  document.getElementById('f-date').valueAsDate=new Date();
+  ['f-cust','f-proj','f-desc','f-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-status').value='open';
+  openOverlay('addOverlay');
+}
+
+function openEdit(id){
+  const j=jobs.find(x=>x.id===id); if(!j) return;
+  editId=id;
+  document.getElementById('sheetTitle').textContent='✏️ עריכה';
+  let iso='';
+  if(j.date){const[d,m,y]=j.date.split('/');if(d&&m&&y)iso=`20${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}
+  document.getElementById('f-date').value=iso;
+  document.getElementById('f-cust').value=j.cust;
+  document.getElementById('f-proj').value=j.proj||'';
+  document.getElementById('f-desc').value=j.desc||'';
+  document.getElementById('f-status').value=j.status;
+  document.getElementById('f-notes').value=j.notes||'';
+  openOverlay('addOverlay');
+}
+
+function saveJob(){
+  const cust=document.getElementById('f-cust').value.trim();
+  const date=document.getElementById('f-date').value;
+  if(!cust){toast('⚠️ שם לקוח חובה');return;}
+  if(!date){toast('⚠️ תאריך מסירה חובה');return;}
+  const data={date:fmtDate(document.getElementById('f-date').value)||'',cust,proj:document.getElementById('f-proj').value.trim(),desc:document.getElementById('f-desc').value.trim(),status:document.getElementById('f-status').value,notes:document.getElementById('f-notes').value.trim()};
+  if(editId){
+    const j=jobs.find(x=>x.id===editId);
+    if(j){Object.assign(j,data);save();toast('💾 עודכן');if(sheetsUrl)pushToSheets(j);}
+  } else { addJob(data); }
+  closeOverlay('addOverlay'); render(); updateStats();
+}
+
+function toggleStatus(id){
+  const j=jobs.find(x=>x.id===id); if(!j) return;
+  j.status = j.status==='done' ? 'open' : 'done';
+  if(j.status==='done'){
+    j.closedDate = fmtDate(new Date().toISOString().split('T')[0]);
+  } else {
+    j.closedDate = '';
+  }
+  save(); render(); updateStats();
+  toast(j.status==='done' ? '✅ סומן כבוצע' : '🔄 הוחזר ללא בוצע');
+  if(sheetsUrl) pushToSheets(j);
+}
+
+function deleteJob(id){
+  if(!confirm('למחוק?')) return;
+  jobs=jobs.filter(x=>x.id!==id);
+  save(); render(); updateStats(); toast('🗑 נמחק');
+}
+
+function fmtDate(iso){
+  if(!iso||!iso.includes('-')) return iso||'';
+  const[y,m,d]=iso.split('-');
+  return `${d}/${m}/${y.slice(2)}`;
+}
+
+// ── RENDER ───────────────────────────────────────────────────
+function setFilter(f){
+  currentFilter=f;
+  ['all','open','done'].forEach(x=>document.getElementById('fb-'+x).classList.toggle('active',x===f));
+  const fs=document.getElementById('filterSel'); if(fs) fs.value=f;
+  render();
+}
+
+function render(){
+  const q=document.getElementById('searchIn').value.toLowerCase().trim();
+  let list=jobs.filter(j=>{
+    if(currentFilter==='open'&&j.status!=='open') return false;
+    if(currentFilter==='done'&&j.status!=='done') return false;
+    if(q&&!j.cust.toLowerCase().includes(q)&&!j.proj.toLowerCase().includes(q)&&!j.desc.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  list=[...list].sort((a,b)=>{
+    const parseDate = d => {
+      if(!d) return 99999999;
+      const [dd,mm,yy] = d.split('/');
+      if(!dd||!mm||!yy) return 99999999;
+      return parseInt('20'+yy)*10000 + parseInt(mm)*100 + parseInt(dd);
+    };
+    // Open first, done after
+    if(a.status!==b.status){
+      return a.status==='open' ? -1 : 1;
+    }
+    // Newly added job floats to top (before next refresh)
+    if(a._new && !b._new) return -1;
+    if(!a._new && b._new) return 1;
+    // Within same status — sort by date ascending
+    return parseDate(a.date)-parseDate(b.date);
+  });
+
+  const empty=document.getElementById('emptyEl');
+  if(list.length===0){
+    document.getElementById('cardsList').innerHTML='';
+    document.getElementById('tbody').innerHTML='';
+    empty.style.display='block'; return;
+  }
+  empty.style.display='none';
+
+  // MOBILE CARDS
+  document.getElementById('cardsList').innerHTML=list.map(j=>`
+    <div class="job-card${j.status==='done'?' done-card':''}">
+      <div class="jc-top">
+        <div class="jc-cust">${esc(j.cust)}</div>
+        <div style="text-align:left">
+          ${j.date?`<div class="jc-date">📅 מסירה: ${esc(j.date)}</div>`:''}
+          ${j.closedDate?`<div class="jc-date" style="color:var(--done-text)">✅ סגירה: ${esc(j.closedDate)}</div>`:''}
+        </div>
+      </div>
+      ${j.proj?`<div class="jc-proj">📁 ${esc(j.proj)}</div>`:''}
+      ${j.desc?`<div class="jc-desc">${esc(j.desc)}</div>`:''}
+      ${j.notes?`<div class="jc-notes">📝 ${esc(j.notes)}</div>`:''}
+      <div class="jc-footer">
+        <button class="status-toggle ${j.status}" onclick="toggleStatus(${j.id})">
+          ${j.status==='done'?'✅ נפתחה עבודה בפריוריטי — לחץ לביטול':'🔄 לא נפתחה עבודה בפריוריטי — לחץ לסימון'}
+        </button>
+        <div class="jc-actions">
+          <button class="icon-btn" onclick="openEdit(${j.id})">✏️</button>
+          <button class="icon-btn del" onclick="deleteJob(${j.id})">🗑</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  // DESKTOP TABLE
+  const daysSince=d=>{ if(!d||!d.includes('/')) return ''; const[dd,mm,yy]=d.split('/'); const t=new Date(2000+ +yy,mm-1,dd); return Math.max(0,Math.floor((Date.now()-t)/864e5)); };
+  document.getElementById('tbody').innerHTML=list.map((j,i)=>`
+    <tr class="${j.status==='done'?'done-row':''}">
+      <td class="num">${i+1}</td>
+      <td class="c">${esc(j.date)||'—'}</td>
+      <td><b>${esc(j.cust)}</b></td>
+      <td>${esc(j.proj)||'—'}</td>
+      <td>${esc(j.desc)||'—'}</td>
+      <td class="c">${j.status==='done'?'':daysSince(j.date)}</td>
+      <td class="c">
+        <button class="status-toggle ${j.status}" onclick="toggleStatus(${j.id})">
+          ${j.status==='done'?'✅ נפתחה עבודה בפריוריטי':'🔄 לא נפתחה עבודה בפריוריטי'}
+        </button>
+      </td>
+      <td class="c">${j.closedDate ? esc(j.closedDate) : '—'}</td>
+      <td style="color:#666;font-size:13px">${esc(j.notes)}</td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn" onclick="openEdit(${j.id})">✏️</button>
+          <button class="icon-btn del" onclick="deleteJob(${j.id})">🗑</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function sortBy(f){if(sortField===f)sortDir*=-1;else{sortField=f;sortDir=1;}render();}
+
+// ── STATS ────────────────────────────────────────────────────
+function updateStats(){
+  document.getElementById('st-total').textContent=jobs.length;
+  document.getElementById('st-done').textContent=jobs.filter(j=>j.status==='done').length;
+  document.getElementById('st-open').textContent=jobs.filter(j=>j.status==='open').length;
+  const open=jobs.filter(j=>j.status==='open');
+  const age=d=>{ if(!d||!d.includes('/')) return 0; const[dd,mm,yy]=d.split('/'); return (Date.now()-new Date(2000+ +yy,mm-1,dd))/864e5; };
+  document.getElementById('k-total').textContent=jobs.length;
+  document.getElementById('k-open').textContent=open.length;
+  document.getElementById('k-old').textContent=open.filter(j=>age(j.date)>14).length;
+  document.getElementById('k-done').textContent=jobs.length-open.length;
+}
+
+// ── SHEETS SYNC ──────────────────────────────────────────────
+function setSyncDot(state){document.getElementById('syncDot').className='sync-dot '+state;}
+
+async function pushToSheets(job){
+  if(!sheetsUrl) return; setSyncDot('syncing');
+  try{
+    await fetch(sheetsUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      id:job.id, num:job.num, date:job.date, customer:job.cust, project:job.proj, desc:job.desc,
+      status:job.status==='done'?'בוצע':'לא בוצע', notes:job.notes||'', closedDate:job.closedDate||''
+    })});
+    setSyncDot('synced');
+  }catch(e){setSyncDot('error');toast('⚠️ שגיאת חיבור ל-Sheets');}
+}
+
+// Pulls the full job list from Sheets and merges it into the local list
+// (remote rows win for matching ids; local-only jobs — not yet pushed — are kept as-is)
+async function loadFromSheets(){
+  if(!sheetsUrl) return;
+  setSyncDot('syncing');
+  try{
+    const r = await fetch(sheetsUrl);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const remote = await r.json();
+    const byId = new Map(jobs.map(j=>[String(j.id), j]));
+    let maxNum = counter;
+    remote.forEach(row=>{
+      const id = String(row.id);
+      const mapped = {
+        id: row.id, num: Number(row.num)||0, date: row.date||'',
+        cust: row.customer||'', proj: row.project||'', desc: row.desc||'',
+        status: row.status==='בוצע' ? 'done' : 'open',
+        notes: row.notes||'', closedDate: row.closedDate||''
+      };
+      byId.set(id, mapped);
+      if(mapped.num > maxNum) maxNum = mapped.num;
+    });
+    jobs = [...byId.values()];
+    counter = maxNum;
+    save();
+    setSyncDot('synced');
+  }catch(e){
+    setSyncDot('error');
+    toast('⚠️ שגיאה בטעינה מ-Sheets — מוצגים נתונים מקומיים בלבד');
+  }
+  render(); updateStats();
+}
+
+// ── SETTINGS ─────────────────────────────────────────────────
+function openSettings(){
+  document.getElementById('sheetsUrl').value=sheetsUrl||'';
+  document.getElementById('connStatus').textContent=sheetsUrl?'🟢 מחובר':'⚪ לא מחובר';
+  openOverlay('settingsOverlay');
+}
+function saveSettings(){
+  sheetsUrl=document.getElementById('sheetsUrl').value.trim();
+  localStorage.setItem('wt_url',sheetsUrl);
+  setSyncDot(sheetsUrl?'synced':'');
+  toast('✅ הגדרות נשמרו');
+  closeOverlay('settingsOverlay');
+}
+
+// ── EXPORT ───────────────────────────────────────────────────
+function doExport(){
+  const XLSX = window.XLSX;
+  if(!XLSX){ toast('⚠️ טוען...'); return; }
+
+  const parseDate = d => {
+    if(!d) return 99999999;
+    const [dd,mm,yy] = d.split('/');
+    if(!dd||!mm||!yy) return 99999999;
+    return parseInt('20'+yy)*10000 + parseInt(mm)*100 + parseInt(dd);
+  };
+  const sortedJobs = [...jobs].sort((a,b)=>{
+    if(a.status!==b.status) return a.status==='open' ? -1 : 1;
+    return parseDate(a.date)-parseDate(b.date);
+  });
+
+  const h=['#','תאריך מסירה','שם הלקוח','שם הפרויקט','תיאור העבודה','סטטוס','תאריך סגירה','הערות'];
+  const rows=sortedJobs.map((j,i)=>[i+1, j.date||'',j.cust,j.proj||'',j.desc||'',j.status==='done'?'נפתחה עבודה בפריוריטי':'לא נפתחה עבודה בפריוריטי',j.closedDate||'',j.notes||'']);
+
+  const wsData=[h,...rows];
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+
+  // Column widths
+  // Auto-fit: every column is as wide as its longest text (header included), so nothing is hidden
+  ws['!cols']=h.map((_,c)=>({wch:Math.min(80,Math.max(6,...wsData.map(r=>String(r[c]??'').length))*1.15+4)}));
+
+  // RTL direction for the sheet
+  if(!ws['!sheetView']) ws['!sheetView']={};
+  ws['!sheetViews']=[{rightToLeft:true}];
+
+  // Apply styling to ALL cells
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  for(let R=range.s.r; R<=range.e.r; R++){
+    for(let C=range.s.c; C<=range.e.c; C++){
+      const addr=XLSX.utils.encode_cell({r:R,c:C});
+      if(!ws[addr]) ws[addr]={v:'',t:'s'};
+      const isHeader = R===0;
+      const val = ws[addr].v;
+      const isStatusDone = val==='נפתחה עבודה בפריוריטי';
+      const isStatusOpen = val==='לא נפתחה עבודה בפריוריטי';
+      const isNumCol = C===0 && R>0;
+
+      ws[addr].s={
+        alignment:{horizontal:'center',vertical:'center',readingOrder:2,wrapText:false},
+        font: isHeader ? {bold:true,sz:11,color:{rgb:'FFFFFF'}} :
+              isNumCol ? {bold:true,sz:11,color:{rgb:'1a5c38'}} :
+              isStatusDone ? {bold:true,sz:11,color:{rgb:'16a34a'}} :
+              isStatusOpen ? {bold:true,sz:11,color:{rgb:'c2410c'}} :
+              {sz:11,color:{rgb:'1a1a1a'}},
+        fill: isHeader ? {fgColor:{rgb:'217346'},patternType:'solid'} :
+              isNumCol ? {fgColor:{rgb:'f0fff4'},patternType:'solid'} :
+              isStatusDone ? {fgColor:{rgb:'f0fdf4'},patternType:'solid'} :
+              isStatusOpen ? {fgColor:{rgb:'fff7ed'},patternType:'solid'} :
+              R%2===0 ? {fgColor:{rgb:'f9fffe'},patternType:'solid'} :
+              {fgColor:{rgb:'ffffff'},patternType:'solid'},
+        border:{
+          top:{style:'thin',color:{rgb:'d0d0d0'}},
+          bottom:{style:'thin',color:{rgb:'d0d0d0'}},
+          left:{style:'thin',color:{rgb:'d0d0d0'}},
+          right:{style:'thin',color:{rgb:'d0d0d0'}}
+        }
+      };
+    }
+  }
+
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'עבודות');
+
+  // Workbook RTL
+  wb.Workbook={Views:[{RTL:true}]};
+
+  const date=new Date().toLocaleDateString('he-IL').replace(/\//g,'-');
+  XLSX.writeFile(wb,'עבודות_'+date+'.xlsx');
+  toast('📊 קובץ Excel יוצא!');
+}
+
+// ── OVERLAY ──────────────────────────────────────────────────
+function openOverlay(id){document.getElementById(id).classList.add('open');}
+function closeOverlay(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');});
+});
+
+// ── TOAST ────────────────────────────────────────────────────
+let toastT;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>el.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>

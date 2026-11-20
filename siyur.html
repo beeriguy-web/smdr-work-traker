@@ -145,6 +145,7 @@ body.embedded .sticky{top:52px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="cloud.js?v=20261121a"></script>
 </head>
 <body>
 <header class="top">
@@ -349,7 +350,35 @@ const isInternal=c=>/@smdrtech\.co\.il\s*$/i.test(c.m||'');
 let saveT=null;
 let VER=0;
 function persist(){VER++;clearTimeout(saveT);saveT=setTimeout(()=>IDB.set('draft',F),300)}
-function persistV(){return IDB.set('visits',V)}
+function persistV(){const p=IDB.set('visits',V);if(window.Cloud)Cloud.queue(SY_CLOUD);return p}
+/* מעקב סיורים ↔ Google Sheet (cloud.js). Photos go to Drive ("שמדר – טפסים/סיורים - תמונות"); the sheet keeps "drive:<id>" in their place. */
+let PHMAP={}; // photo hash -> Drive file id (so a photo is uploaded once)
+async function phKey(d){const b=await crypto.subtle.digest('SHA-1',new TextEncoder().encode(d));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function photoRef(d){
+ if(typeof d!=='string'||!d.startsWith('data:'))return d;
+ const k=await phKey(d);if(PHMAP[k])return 'drive:'+PHMAP[k];
+ const j=await Cloud.saveFile('סיורים - תמונות',k+'.jpg',(d.match(/^data:([^;]+)/)||[])[1]||'image/jpeg',d.split(',')[1]);
+ PHMAP[k]=j.id;IDB.set('phmap',PHMAP);return 'drive:'+j.id;
+}
+async function resolvePhotos(state){ // drive:<id> -> picture (when a report made on another device is opened)
+ let n=0,bad=0;
+ for(const it of Object.values(state.it||{}))for(let i=0;i<(it.ph||[]).length;i++){const p=it.ph[i];if(typeof p==='string'&&p.startsWith('drive:')){n++;
+  try{const d=await Cloud.readFile(p.slice(6));PHMAP[await phKey(d)]=p.slice(6);it.ph[i]=d}catch(e){bad++}}}
+ if(n)IDB.set('phmap',PHMAP);return {n,bad};
+}
+const SY_CLOUD={name:'siyur',list:()=>V,
+ setList:l=>{V=l;IDB.set('visits',V)},
+ onChange:()=>{if(document.getElementById('v-trk').classList.contains('on'))renderTrk()},
+ cols:m=>[['פרויקט',m.project],['לקוח',m.client],['תאריך סיור',m.date],['ליקויים',m.bad],['לשבח',m.good],['סטטוס',(STATUS[m.status]||STATUS.draft).t],['PDF',m.pdfUrl||'']],
+ toCloud:async m=>{const c=JSON.parse(JSON.stringify(Cloud.strip(m)));
+  for(const it of Object.values((c.state&&c.state.it)||{}))if(it.ph&&it.ph.length)it.ph=await Promise.all(it.ph.map(photoRef));
+  return c}};
+function fileB64(f){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=no;r.readAsDataURL(f)})}
+async function pdfToDrive(file,id){ // keep a copy of every produced report PDF in Drive, linked from the tracker
+ if(!window.Cloud)return;
+ try{const j=await Cloud.saveFile('סיורים - דוחות',file.name,'application/pdf',await fileB64(file),true);
+  const m=V.find(x=>x.id===id);if(m){m.pdfUrl=j.url;persistV();if(document.getElementById('v-trk').classList.contains('on'))renderTrk()}}catch(e){}
+}
 
 function blank(){return{id:null,client:'',project:'',job:'',date:today(),stage:'',contacts:[],cc:[],escorts:[],it:{},extra:[],free:[],general:'',status:'draft'}}
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -361,7 +390,7 @@ function v(id){return document.getElementById(id).value}
 function show(name){
  document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+name));
  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===name));
- if(name==='sum'){renderSummary();if(IS_PHONE)prebuild()}if(name==='trk')renderTrk();
+ if(name==='sum'){renderSummary();if(IS_PHONE)prebuild()}if(name==='trk'){renderTrk();if(window.Cloud&&V)Cloud.sync(SY_CLOUD)}
  if(location.hash!=='#'+name)history.replaceState(null,'','#'+name);scrollTo(0,0);
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.v));
@@ -595,7 +624,7 @@ const IS_PHONE=/Android|iPhone|iPad/i.test(navigator.userAgent);try{if(window.se
 async function makePdf(){
  const btn=document.getElementById('pdfBtn');btn.disabled=true;const old=btn.textContent;btn.textContent='מפיק PDF...';
  try{
-  saveVisit();saveContactsToSheet();const file=await buildPdf();
+  saveVisit();saveContactsToSheet();const file=await buildPdf();pdfToDrive(file,F.id);
   if(IS_PHONE&&navigator.canShare&&navigator.canShare({files:[file]})){
    try{await navigator.share({files:[file],title:file.name});toast('ה-PDF שותף ✓');return}catch(e){if(e&&e.name==='AbortError')return}
   }
@@ -635,7 +664,7 @@ async function sendReport(){
   renderSummary();
   const fresh=!!(_pdf&&_pdf.ver===VER&&!_building);
   const file=fresh?_pdf.file:await prebuild();
-  saveVisit('sent');saveContactsToSheet();
+  saveVisit('sent');saveContactsToSheet();pdfToDrive(file,F.id);
   _share={file};showHelper();
   savePdf(file);                                   // 1. PDF → the phone's Downloads
   if(fresh)setTimeout(openMail,600);               // 2. Outlook with everything filled in
@@ -659,7 +688,7 @@ function saveVisit(status){
  const R=rows();if(!F.id)F.id='v'+Date.now();
  if(status)F.status=status;
  const rec={id:F.id,project:F.project||'ללא שם',client:F.client,date:F.date,bad:R.bad.length,good:R.good.length,status:F.status||'draft',saved:today(),state:JSON.parse(JSON.stringify(F))};
- const i=V.findIndex(x=>x.id===F.id);if(i>=0)V[i]=rec;else V.unshift(rec);
+ const i=V.findIndex(x=>x.id===F.id);if(i>=0){if(V[i].pdfUrl)rec.pdfUrl=V[i].pdfUrl;V[i]=rec}else V.unshift(rec);
  persistV();persist();
 }
 const STATUS={draft:{t:'טיוטה',bg:'#fff3cd',c:'#856404'},sent:{t:'נשלח',bg:'#e3f4ea',c:'#1e7a46'},closed:{t:'ליקויים טופלו',bg:'#e3eefc',c:'#16559f'}};
@@ -667,11 +696,13 @@ function renderTrk(){
  const b=document.getElementById('trkBody');
  b.innerHTML=V.length?V.map(m=>{const S=STATUS[m.status]||STATUS.draft;
   const sel=`<select onchange="setStatus('${m.id}',this.value)" style="width:auto;padding:4px 8px;font-weight:600;background:${S.bg};color:${S.c};border-color:${S.bg}">`+Object.keys(STATUS).map(k=>`<option value="${k}" ${k===m.status?'selected':''}>${STATUS[k].t}</option>`).join('')+`</select>`;
-  return `<tr><td><b>${esc(m.project)}</b></td><td>${esc(m.client)}</td><td>${fmtD(m.date)}</td><td>${m.bad?`<span class="pill bad">✗ ${m.bad}</span>`:'—'}</td><td>${m.good?`<span class="pill good">★ ${m.good}</span>`:'—'}</td><td>${sel}</td><td style="white-space:nowrap"><button class="btn sec" onclick="openVisit('${m.id}')">פתח</button> <button class="btn sec" style="color:#bc2129;border-color:#e3cfcf" onclick="delVisit('${m.id}')">🗑 מחק</button></td></tr>`}).join('')
+  return `<tr><td><b>${esc(m.project)}</b></td><td>${esc(m.client)}</td><td>${fmtD(m.date)}</td><td>${m.bad?`<span class="pill bad">✗ ${m.bad}</span>`:'—'}</td><td>${m.good?`<span class="pill good">★ ${m.good}</span>`:'—'}</td><td>${sel}</td><td style="white-space:nowrap">${m.pdfUrl?`<a class="btn sec" style="text-decoration:none" href="${m.pdfUrl}" target="_blank" rel="noopener">📄 PDF</a> `:''}<button class="btn sec" onclick="openVisit('${m.id}')">פתח</button> <button class="btn sec" style="color:#bc2129;border-color:#e3cfcf" onclick="delVisit('${m.id}')">🗑 מחק</button></td></tr>`}).join('')
   :'<tr><td colspan="7" class="note">עדיין אין דוחות שמורים.</td></tr>';
 }
 function setStatus(id,s){const m=V.find(x=>x.id===id);if(!m)return;m.status=s;m.state.status=s;if(F.id===id)F.status=s;persistV();renderTrk();toast('הסטטוס עודכן: '+STATUS[s].t)}
-function openVisit(id){const m=V.find(x=>x.id===id);if(!m)return;F=JSON.parse(JSON.stringify(m.state));renderAll();persist();show('form')}
+async function openVisit(id){const m=V.find(x=>x.id===id);if(!m)return;
+ if(JSON.stringify(m.state.it||{}).includes('"drive:')){toast('טוען תמונות מהענן...');const r=await resolvePhotos(m.state);IDB.set('visits',V);if(r.bad)toast('⚠ '+r.bad+' תמונות לא נטענו (אין חיבור?)')}
+ F=JSON.parse(JSON.stringify(m.state));renderAll();persist();show('form')}
 function delVisit(id){const m=V.find(x=>x.id===id);if(!m)return;ask(`למחוק את הדוח של "${esc(m.project)}" מ-${fmtD(m.date)}? אי אפשר לשחזר.`,()=>{V=V.filter(x=>x.id!==id);if(F.id===id)F.id=null;persistV();persist();renderTrk();toast('הדוח נמחק')})}
 
 /* ---------------------------------------------------------------- combobox (same as the planning form) */
@@ -725,6 +756,8 @@ function renderAll(){META.forEach(k=>document.getElementById(k).value=F[k]||'');
 (async()=>{
  const [d,vs,cl,ro,inn]=await Promise.all([IDB.get('draft'),IDB.get('visits'),IDB.get('clients'),IDB.get('roles'),IDB.get('internal')]);
  F=d||blank();V=vs||[];ROLES_DB=ro||{};INTERNAL=inn||[];if(cl&&!Object.keys(CL).length)CL=cl;
+ PHMAP=(await IDB.get('phmap'))||{};
+ if(window.Cloud)setTimeout(()=>Cloud.sync(SY_CLOUD,{quiet:true}),900);
  if(!F.cc)F.cc=[];
  if(!F.escorts)F.escorts=F.escort?[{r:'',n:F.escort,other:true}]:[];delete F.escort;
  if(!F.id)F.date=today(); // a visit's date = the day the form is opened (saved reports keep theirs)

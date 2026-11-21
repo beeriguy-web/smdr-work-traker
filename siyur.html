@@ -107,7 +107,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 .paper tr.good td.f{color:#16559f}
 .paper tr.pics td{border-top:0;padding-top:0}
 .paper .pp{display:flex;flex-wrap:wrap;gap:8px}
-.paper .pp img{width:calc(33.3% - 6px);height:150px;object-fit:cover;border-radius:5px;border:1px solid #ddd}
+.paper .pp img{width:calc(50% - 4px);height:230px;object-fit:contain;background:#f3f3f3;border-radius:5px;border:1px solid #ddd} /* whole photo, 2 per row */
 .paper .oklist{columns:2;column-gap:24px;font-size:12.5px;margin:0;padding:8px 22px 8px 12px;border:1px solid #d7ecdf;border-radius:8px;background:#f7fcf9}
 .paper .oklist li{margin:2px 0;break-inside:avoid}
 .paper .gen{white-space:pre-line;font-size:13.5px;border:1px solid #ead6d6;border-radius:8px;padding:10px 12px}
@@ -598,10 +598,22 @@ async function openMailWithBody(mailtoNoBody,text,extraMsg){
 function prepareMail(){saveVisit('sent');saveContactsToSheet();renderSummary();show('sum');const M=window._mail;return{to:F.contacts.map(c=>c.m).filter(Boolean).join(';'),subj:M.subj,body:M.body}}
 function sendMail(){const m=prepareMail();openMailWithBody(`mailto:${m.to}?cc=${ccList().replace(/, /g,';')}&subject=${encodeURIComponent(m.subj)}`,m.body,'צרף את קובץ ה-PDF')}
 
+/* html2canvas ignores object-fit, so it stretched every photo to its box. Before the capture each photo is redrawn
+   into an image with exactly the box's proportions (whole photo, light margins), so nothing is stretched or cut. */
+function fitImg(src,w,h,k){return new Promise(ok=>{const im=new Image();im.onload=()=>{
+ const c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);const g=c.getContext('2d');
+ g.fillStyle='#f3f3f3';g.fillRect(0,0,c.width,c.height);
+ const r=Math.min(c.width/im.naturalWidth,c.height/im.naturalHeight),dw=im.naturalWidth*r,dh=im.naturalHeight*r;
+ g.drawImage(im,(c.width-dw)/2,(c.height-dh)/2,dw,dh);ok(c.toDataURL('image/jpeg',.9))};im.onerror=()=>ok(src);im.src=src})}
 async function buildPdf(){ // -> File
  renderSummary();
  const el=document.getElementById('paper');
- const scale=window.innerWidth<700?2:2.5;const cv=await html2canvas(el,{scale,backgroundColor:'#fff',windowWidth:900});
+ const scale=window.innerWidth<700?2:2.5;
+ const imgs=[...el.querySelectorAll('.pp img')];
+ for(const im of imgs){const w=im.clientWidth,h=im.clientHeight;if(w&&h){im.dataset.orig=im.src;im.src=await fitImg(im.src,w,h,scale*1.2);im.style.objectFit='fill'}}
+ if(imgs.length)await new Promise(r=>setTimeout(r,60));
+ const cv=await html2canvas(el,{scale,backgroundColor:'#fff',windowWidth:900});
+ imgs.forEach(im=>{if(im.dataset.orig){im.src=im.dataset.orig;delete im.dataset.orig;im.style.objectFit=''}});
  const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'a4',compress:true});
  const pw=210,ph=297,mg=8;const imgW=pw-2*mg;const pxPerMm=cv.width/imgW;const pageH=(ph-2*mg)*pxPerMm;
  const top=el.getBoundingClientRect().top;

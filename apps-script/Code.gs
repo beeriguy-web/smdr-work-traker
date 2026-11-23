@@ -3,6 +3,8 @@
  *  - אנשי קשר ואדריכלים: בדיוק כמו קודם (לא שונה)
  *  - חדש: מעקבים משותפים לכל המכשירים – לשונית לכל מעקב
  *  - חדש: תמונות סיורים ו-PDF של דוחות נשמרים בגוגל דרייב
+ *  - גרסה 3 (23.11.2026): אנשי קשר – עמודת "תפקיד" (E), ואיש קשר שכבר קיים
+ *    (אותה חברה + אותו שם) מתעדכן במקום להיכפל; נעילה נגד שמירות במקביל
  ***************************************************************/
 const SHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
 const SHEET_NAME = 'contacts';
@@ -59,8 +61,14 @@ function doGet(e) {
   // אנשי קשר – בדיוק כמו קודם
   const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
   const data = sheet.getDataRange().getValues();
-  const rows = data.slice(1).map(row => ({ company: row[0], name: row[1], phone: row[2], email: row[3] }));
+  // role תמיד קיים בתשובה (גם ריק) – כך הטפסים יודעים שהסקריפט תומך בתפקידים ובעדכון
+  const rows = data.slice(1).map(row => ({ company: row[0], name: row[1], phone: row[2], email: row[3], role: row[4] || '' }));
   return json_(rows);
+}
+
+// השוואת שמות: בלי רווחים מיותרים ובלי סימני כיוון בלתי נראים
+function normKey_(s) {
+  return String(s || '').replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '').replace(/\s+/g, ' ').trim();
 }
 
 function doPost(e) {
@@ -93,20 +101,42 @@ function doPost(e) {
     return json_({status: 'ok'});
   }
 
-  // איש קשר – בדיוק כמו קודם
-  const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
-  const companies = sheet.getRange(1, 1, sheet.getLastRow(), 1).getValues();
-  let lastMatchRow = -1;
-  for (let i = 0; i < companies.length; i++) {
-    if (companies[i][0] === data.company) lastMatchRow = i + 1;
+  // איש קשר: אם כבר קיים (אותה חברה + אותו שם) – מעדכנים טלפון/מייל/תפקיד; אחרת מוסיפים ליד אנשי הקשר של אותה חברה
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);   // שתי שמירות באותו רגע לא דורסות זו את זו
+  try {
+    const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
+    if (sheet.getRange(1, 5).getValue() === '') sheet.getRange(1, 5).setValue('תפקיד').setFontWeight('bold');
+    const last = sheet.getLastRow();
+    const vals = last ? sheet.getRange(1, 1, last, 5).getValues() : [];
+    const co = normKey_(data.company), nm = normKey_(data.name);
+    let lastMatchRow = -1, existRow = -1;
+    for (let i = 0; i < vals.length; i++) {
+      if (normKey_(vals[i][0]) === co) {
+        lastMatchRow = i + 1;
+        if (normKey_(vals[i][1]) === nm) existRow = i + 1;
+      }
+    }
+    if (existRow !== -1) {
+      const cur = vals[existRow - 1];
+      const row = [cur[0], cur[1],
+        data.phone ? data.phone : cur[2],
+        data.email ? data.email : cur[3],
+        data.role  ? data.role  : cur[4]];   // תפקיד חדש דורס את הקודם
+      sheet.getRange(existRow, 1, 1, 5).setValues([row]);
+      return json_({status: 'updated'});
+    }
+    const row = [data.company, data.name, data.phone || '', data.email || '', data.role || ''];
+    if (lastMatchRow === -1) {
+      sheet.appendRow(row);
+    } else {
+      sheet.insertRowAfter(lastMatchRow);
+      sheet.getRange(lastMatchRow + 1, 1, 1, 5).setValues([row]);
+    }
+    return json_({status: 'added'});
+  } finally {
+    lock.releaseLock();
   }
-  if (lastMatchRow === -1) {
-    sheet.appendRow([data.company, data.name, data.phone, data.email]);
-  } else {
-    sheet.insertRowAfter(lastMatchRow);
-    sheet.getRange(lastMatchRow + 1, 1, 1, 4).setValues([[data.company, data.name, data.phone, data.email]]);
-  }
-  return json_({status: 'ok'});
 }
 
 /* ============================ מעקבים ============================ */

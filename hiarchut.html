@@ -126,6 +126,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="cloud.js?v=20261121a"></script>
+<script src="contacts.js?v=20261123a"></script>
 </head>
 <body>
 <header class="top">
@@ -168,7 +169,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
       <div id="contactChips"></div>
       <div class="addbox">
         <span class="combo"><input id="nc-name" placeholder="שם איש קשר" autocomplete="off"><button type="button" class="arr" tabindex="-1">▼</button><span class="combo-list"></span></span>
-        <select id="nc-role"><option value="">תפקיד...</option><option>מנ"פ</option><option>מנ"א</option><option>מהנדס ביצוע</option><option>מנהל עבודה</option><option>מנכ"ל</option><option>רכש</option><option>אחר</option></select>
+        <select id="nc-role"></select>
         <input id="nc-mail" placeholder="מייל" inputmode="email" dir="ltr">
         <input id="nc-phone" placeholder="טלפון" dir="ltr">
         <button class="btn sec" onclick="addContact()">+ הוסף</button>
@@ -287,19 +288,35 @@ const SHEETS_API='https://script.google.com/macros/s/AKfycbxy_ApQma-kWOy05t8Xaou
 let DB = load('hiarchut_db_live') || {clients:{},archs:[],meetings:[],roles:{}};
 DB.roles=DB.roles||{};DB.meetings=DB.meetings||[];
 function roleKey(co,n){return co+'|'+n}
-fetch(SHEETS_API).then(r=>{if(!r.ok)throw 0;return r.json()}).then(rows=>{
- const cl={};rows.forEach(r=>{if(!r.company||!r.name)return;const co=String(r.company).trim();(cl[co]=cl[co]||{contacts:[]}).contacts.push({n:String(r.name).trim(),r:DB.roles[roleKey(co,String(r.name).trim())]||'',m:String(r.email||'').trim(),p:String(r.phone||'').trim()})});
- DB.clients=cl;persist();
-}).catch(()=>toast('⚠ טעינת אנשי קשר מהגיליון נכשלה - מוצגת הרשימה השמורה'));
+// אנשי קשר: מאגר משותף לכל הטפסים (contacts.js) – DB.clients הוא תצוגה שלו בפורמט של הטופס
+const SC=SmdrContacts;SC.onWarn(m=>toast(m));
+function syncClients(){const out={};Object.keys(SC.db).forEach(co=>{out[co]={contacts:SC.db[co].map(c=>({n:c.n,r:c.r,m:c.e,p:c.p}))}});DB.clients=out}
+syncClients();
+SC.onChange(w=>{syncClients();
+ if(w.type==='load'){ // תפקידים שנשמרו בעבר רק במכשיר הזה → למאגר
+  Object.keys(DB.roles||{}).forEach(k=>{const[co,n]=k.split('|');const c=SC.find(co,n);if(c&&!c.r&&DB.roles[k])SC.save(co,{n:c.n,r:DB.roles[k]})});
+  checkClient(true);
+ }
+ if(w.type==='load-failed'&&!Object.keys(SC.db).length)toast('⚠ טעינת אנשי קשר מהגיליון נכשלה');
+});
+document.getElementById('nc-role').innerHTML='<option value="">תפקיד...</option>'+SmdrContacts.ROLES.map(r=>`<option>${r}</option>`).join('');
+function coName(){return SC.resolve(F.client).name||F.client.trim()}
+function saveContact(c){const co=coName();if(!co||!c||!c.n)return;SC.save(co,{n:c.n,p:c.p,e:c.m,r:c.r})}
+// שם הלקוח: מתאימים לשם המלא שבמאגר; חברה חדשה – נשמרת בשם שנכתב
+function checkClient(silent){
+ const el=document.getElementById('client');if(!el||!F||!F.client)return setClientNote('');
+ const r=SC.resolve(F.client);
+ if(r.known&&r.changed){F.client=r.name;el.value=r.name;persist();if(!silent)toast('החברה הותאמה למאגר: '+r.name);renderContacts()}
+ setClientNote(r.known||!SC.loaded?'':'חברה חדשה – תישמר במאגר בשם הזה. כתוב את השם המלא.');
+}
+function setClientNote(t){let n=document.getElementById('clientNote');const el=document.getElementById('client');if(!n&&el){n=document.createElement('div');n.id='clientNote';n.style.cssText='font-size:12px;color:#9a1a21;min-height:14px;margin-top:2px';el.closest('label').appendChild(n)}if(n)n.textContent=t}
 fetch(SHEETS_API+'?type=architects').then(r=>{if(!r.ok)throw 0;return r.json()}).then(rows=>{
  DB.archs=rows.filter(x=>x.office).map(x=>({o:String(x.office).trim(),n:String(x.name||'').trim(),m:String(x.email||'').trim(),p:String(x.phone||'').trim()}));persist();
 }).catch(()=>{});
 function postSheet(obj){return fetch(SHEETS_API,{method:'POST',body:JSON.stringify(obj)}).then(r=>{if(!r.ok)throw 0}).catch(()=>toast('⚠ השמירה לגיליון נכשלה - בדוק את הגיליון'))}
 function saveContactsToSheet(){
- const co=F.client.trim();if(!co)return;
- F.contacts.forEach(c=>{if(c.r)DB.roles[roleKey(co,c.n)]=c.r;
-  const L=(DB.clients[co]=DB.clients[co]||{contacts:[]}).contacts;
-  if(!L.some(x=>x.n===c.n)){L.push({...c});postSheet({company:co,name:c.n,phone:c.p,email:c.m})}});
+ if(!F.client.trim())return;checkClient(true);
+ F.contacts.forEach(c=>saveContact(c));
  const a=F.arch;if(a&&a.o&&!DB.archs.some(x=>x.o===a.o)){DB.archs.push({...a});postSheet({type:'architect',office:a.o,name:a.n,phone:a.p,email:a.m})}
  persist();
 }
@@ -357,8 +374,8 @@ function renderAll(){
 }
 function allContacts(){const cl=DB.clients[F.client];if(cl)return cl.contacts;return Object.values(DB.clients).flatMap(c=>c.contacts)}
 function cLabel(c){return c.n+(c.r?' - '+c.r:'')}
-const ROLES=['מנ"פ','מנ"א','מהנדס ביצוע','מנהל עבודה','מנכ"ל','רכש','אחר'];
-function roleSel(val,on){return `<select ${on}><option value="">תפקיד...</option>`+ROLES.map(r=>`<option ${r===val?'selected':''}>${r}</option>`).join('')+`</select>`}
+const ROLES=SmdrContacts.ROLES;
+function roleSel(val,on){const L=val&&!ROLES.includes(val)?[val].concat(ROLES):ROLES;return `<select ${on}><option value="">תפקיד...</option>`+L.map(r=>`<option ${r===val?'selected':''}>${r}</option>`).join('')+`</select>`}
 function renderContacts(){
  document.getElementById('contactChips').innerHTML=F.contacts.map((c,i)=>`<div class="crow">
    <input value="${esc(c.n)}" oninput="edC(${i},'n',this.value)">
@@ -377,7 +394,9 @@ function renderContacts(){
  document.getElementById('ccnt').textContent=`${F.contacts.length} אנשי קשר${a?' · '+a.o:''}`;
 }
 function dbFind(c){const cl=DB.clients[F.client];return cl?cl.contacts.find(x=>x.n===c.n):null}
-function edC(i,k,val){const c=F.contacts[i];if(k==='r'&&F.client)DB.roles[roleKey(F.client,c.n)]=val;const d=dbFind(c);c[k]=val;if(d&&d!==c)d[k]=val;refreshQ('contacts');persist()}
+let edT={};
+function edC(i,k,val){const c=F.contacts[i];c[k]=val;refreshQ('contacts');persist();
+ if(k!=='n'){clearTimeout(edT[i]);edT[i]=setTimeout(()=>saveContact(F.contacts[i]),k==='r'?0:900)}}
 function edA(k,val){const o=F.arch.o;F.arch[k]=val;const d=DB.archs.find(x=>x.o===o);if(d&&d!==F.arch)d[k]=val;refreshQ('arch');persist()}
 function rmContact(i){F.contacts.splice(i,1);renderContacts();refreshQ('contacts');updProg();persist()}
 function onContactPick(){
@@ -389,7 +408,8 @@ function addContact(){
  const ex=allContacts().find(x=>cLabel(x)===n||x.n===n);if(ex){onContactPick();return}
  const c={n,r:v('nc-role'),m:v('nc-mail').trim(),p:v('nc-phone').trim()};
  F.contacts.push({...c});['nc-name','nc-mail','nc-phone','nc-role'].forEach(k=>document.getElementById(k).value='');
- renderContacts();refreshQ('contacts');updProg();persist();toast('איש קשר חדש נוסף - יישמר במאגר בהפקת PDF / שליחה');
+ renderContacts();refreshQ('contacts');updProg();persist();
+ if(F.client.trim()){saveContact(c);toast('איש קשר חדש נשמר במאגר ✓')}else toast('איש קשר נוסף - יישמר במאגר אחרי שתבחר לקוח');
 }
 function onArchPick(){const o=v('na-office').trim();const a=DB.archs.find(x=>x.o===o);if(a){F.arch=a;['na-office','na-name','na-mail','na-phone'].forEach(k=>document.getElementById(k).value='');renderContacts();refreshQ('arch');updProg();persist()}}
 function addArch(){
@@ -509,6 +529,7 @@ document.getElementById('tmplSel').onchange=e=>{const t=e.target.value;if(!t)ret
  if(t==='D'){if(F.client!==DANIA){F.client=DANIA;F.contacts=[]}}
  else if(F.tmpl==='D'&&/דניה/.test(F.client)){F.client='';F.contacts=[]}
  F.tmpl=t;F.tmplPicked=1;renderAll();persist()};
+document.getElementById('client').addEventListener('blur',()=>setTimeout(()=>checkClient(false),250));
 ['client','project','job'].forEach(k=>document.getElementById(k).oninput=e=>{F[k]=e.target.value;if(k==='client'){if(/דניה/.test(F.client)&&F.tmpl!=='D'){toast('ללקוח דניה סיבוס בחר "דניה סיבוס" ברשימת הסעיפים')}renderContacts();refreshQ('contacts')}persist()});
 document.getElementById('mdate').onchange=e=>{F.date=e.target.value;persist()};
 

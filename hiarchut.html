@@ -154,7 +154,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
       <div class="grid">
         <label class="f">לקוח<span class="combo"><input id="client" placeholder="בחר או כתוב" data-ph="בחר או כתוב" autocomplete="off"><button type="button" class="arr" tabindex="-1">▼</button><span class="combo-list"></span></span></label>
         <label class="f">פרויקט<input id="project" placeholder="לדוגמה: צלח פתח תקווה" data-ph="לדוגמה: צלח פתח תקווה"></label>
-        <label class="f">מספר פרויקט<input id="job" placeholder="PR26-69, PR26-70" data-ph="PR26-69, PR26-70"></label>
+        <label class="f"><span id="jobLbl">מספר פרויקט</span><input id="job" readonly tabindex="-1" dir="ltr" style="background:#f3f4f6;cursor:default" placeholder="מתמלא מסעיף הסטים" data-ph="מתמלא מסעיף הסטים" title="מתמלא אוטומטית ממספרי הפריוריטי שבסעיף הסטים"></label>
         <label class="f">תאריך הישיבה<input id="mdate" type="date"></label>
       </div>
       
@@ -365,7 +365,7 @@ function renderAll(){
  document.body.classList.toggle('locked',!F.tmplPicked);
  ['client','project','job','mdate'].forEach(k=>{const el=document.getElementById(k);el.disabled=!F.tmplPicked;el.placeholder=F.tmplPicked?(el.dataset.ph||el.placeholder):'בחר קודם רשימת סעיפים'});
  document.getElementById('client').readOnly=F.tmpl==='D';
- ['client','project','job'].forEach(k=>document.getElementById(k).value=F[k]);
+ ['client','project','job'].forEach(k=>document.getElementById(k).value=F[k]||'');updJobUI();
  document.getElementById('mdate').value=F.date;
  
  renderContacts();renderSections();updProg();
@@ -485,6 +485,7 @@ function setsUI(a){
  let h=`<div class="mini" style="margin-top:8px"><span class="l">כמות סטים:</span>`+[1,2,3,4].map(n=>`<button class="${sets.length===n?'on':''}" onclick="setCount(${n})">${n}</button>`).join('')+`<input style="max-width:220px" placeholder="הערה (לדוגמה: סט 1 בכל מגרש)" value="${esc(a.v||'')}" oninput="A('sets').v=this.value;soft('sets')"></div>`;
  sets.forEach((s,i)=>{
   h+=`<div class="sub"><h4>סט ${ORDN[i]}</h4>
+  <div class="mini"><span class="l">מספר בפריוריטי:</span><b style="font-size:13px">PR</b><input dir="ltr" inputmode="numeric" maxlength="5" style="max-width:90px" placeholder="26-69" value="${esc((s.pr||'').replace(/^PR/,''))}" oninput="setPr(${i},this)"><span class="note">לא חובה</span></div>
   <div class="mini"><span class="l">אספקה:</span><input type="date" style="max-width:170px" value="${s.d||''}" onchange="setF(${i},'d',this.value)"><input style="max-width:220px" placeholder="בניין / מגרש" value="${esc(s.b||'')}" oninput="setF(${i},'b',this.value,1)"></div>`+
   [['stone','תבניות אבן'],['inner','תבניות פנים']].map(([k,l])=>`<div class="mini"><span class="l">${l}:</span>`+COMP[k].map(o=>`<button class="${s[k]===o?'on':''}" onclick="setF(${i},'${k}','${o}')">${o}</button>`).join('')+`</div>`).join('')+
   `<div class="mini"><span class="l">פיגום:</span><span class="note">${SCAF} (קבוע)</span></div><div class="mini"><span class="l">הערה:</span><input placeholder="לדוגמה: מותאם גם לבניין 5, 2 יציקות" value="${esc(s.n||'')}" oninput="setF(${i},'n',this.value,1)"></div>
@@ -492,7 +493,13 @@ function setsUI(a){
  });
  return h;
 }
-function setCount(n){const a=A('sets');a.sets=a.sets||[];while(a.sets.length<n)a.sets.push(a.sets.length?{...a.sets[a.sets.length-1],d:'',b:''}:{stone:'היקף קומה מלא',inner:'כ-60% מההיקף כולל גרעין'});a.sets.length=n;after('sets')}
+function setCount(n){const a=A('sets');a.sets=a.sets||[];while(a.sets.length<n)a.sets.push(a.sets.length?{...a.sets[a.sets.length-1],d:'',b:'',pr:''}:{stone:'היקף קומה מלא',inner:'כ-60% מההיקף כולל גרעין'});a.sets.length=n;syncJob();after('sets')}
+function setPr(i,el){let d=el.value.replace(/\D/g,'').slice(0,4);const v=d.length>2?d.slice(0,2)+'-'+d.slice(2):d;if(el.value!==v)el.value=v;A('sets').sets[i].pr=v.length===5?'PR'+v:'';syncJob();soft('sets')}
+// מספר/י פרויקט בפרטי הישיבה = רק מהמספרים שבסעיף הסטים (לא ניתן להקלדה)
+function syncJob(){const nums=((F.ans.sets||{}).sets||[]).map(s=>s.pr).filter(Boolean);const j=[...new Set(nums)].join(', ');
+ if(j||F.jobAuto){F.job=j;F.jobAuto=1}const el=document.getElementById('job');if(el)el.value=F.job||'';updJobUI()}
+function jobLabel(){return (F.job||'').split(',').filter(x=>x.trim()).length>1?'מספרי פרויקטים':'מספר פרויקט'}
+function updJobUI(){const l=document.getElementById('jobLbl');if(l)l.textContent=jobLabel()}
 function setF(i,k,val,quiet){const s=A('sets').sets[i];s[k]=(!quiet&&s[k]===val&&['stone','inner'].includes(k))?'':val;quiet?soft('sets'):after('sets')}
 function copyPrev(i){const s=A('sets').sets;['stone','inner','n'].forEach(k=>s[i][k]=s[i-1][k]);after('sets')}
 function compText(s){const p=[];if(s.stone)p.push('תבניות אבן - '+s.stone);if(s.inner)p.push('תבניות פנים - '+s.inner);p.push('פיגום - '+SCAF);if(s.n)p.push(s.n);return p.join('\n')}
@@ -530,7 +537,7 @@ document.getElementById('tmplSel').onchange=e=>{const t=e.target.value;if(!t)ret
  else if(F.tmpl==='D'&&/דניה/.test(F.client)){F.client='';F.contacts=[]}
  F.tmpl=t;F.tmplPicked=1;renderAll();persist()};
 document.getElementById('client').addEventListener('blur',()=>setTimeout(()=>checkClient(false),250));
-['client','project','job'].forEach(k=>document.getElementById(k).oninput=e=>{F[k]=e.target.value;if(k==='client'){if(/דניה/.test(F.client)&&F.tmpl!=='D'){toast('ללקוח דניה סיבוס בחר "דניה סיבוס" ברשימת הסעיפים')}renderContacts();refreshQ('contacts')}persist()});
+['client','project'].forEach(k=>document.getElementById(k).oninput=e=>{F[k]=e.target.value;if(k==='client'){if(/דניה/.test(F.client)&&F.tmpl!=='D'){toast('ללקוח דניה סיבוס בחר "דניה סיבוס" ברשימת הסעיפים')}renderContacts();refreshQ('contacts')}persist()});
 document.getElementById('mdate').onchange=e=>{F.date=e.target.value;persist()};
 
 /* add from bank */
@@ -578,7 +585,7 @@ function renderSummary(){
  let h=`<div class="lh"><img src="${LOGO}"></div>
  <div class="title">ריכוז נושאים לתכנון פרויקט - סיכום פגישה</div>
  ${ed>1?`<div class="ed">מהדורה ${ed} - עדכון ${fmtD(today())}</div>`:''}
- <div class="info"><div><b>לקוח:</b> ${esc(F.client)}</div><div><b>תאריך ישיבה:</b> ${fmtD(F.date)}</div><div><b>פרויקט:</b> ${esc(F.project)}</div><div><b>מספר פרויקט:</b> ${esc(F.job)}</div></div>
+ <div class="info"><div><b>לקוח:</b> ${esc(F.client)}</div><div><b>תאריך ישיבה:</b> ${fmtD(F.date)}</div><div><b>פרויקט:</b> ${esc(F.project)}</div><div><b>${jobLabel()}:</b> <span dir="ltr" style="unicode-bidi:isolate">${esc(F.job)}</span></div></div>
  <div class="wrap"><table><thead><tr><th style="text-align:center">#</th><th>נושא</th><th>סיכום</th>${anyUpd?'<th style="text-align:center">עדכון</th>':''}</tr></thead><tbody>`+
  R.map((r,i)=>`<tr class="${r.w?'y':''}"><td class="n">${r.n}</td><td>${esc(r.q).replace(/\n/g,'<br>')}</td><td class="a">${esc(r.a)}</td>${anyUpd?`<td class="u">${upd[i]?'<span>עודכן<br>'+fmtD(today())+'</span>':''}</td>`:''}</tr>`).join('')+`</tbody></table></div>`;
  if(waits.length||anyUpd)h+=`<div class="legend">${waits.length?'<span><b></b>מסומן בצהוב - ממתין לתשובת הלקוח</span>':''}${anyUpd?'<span><b class="g"></b>עודכן במהדורה זו</span>':''}</div>`;

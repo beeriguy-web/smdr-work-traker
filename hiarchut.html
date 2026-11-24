@@ -330,6 +330,9 @@ const HR_CLOUD={name:'hiarchut',list:()=>DB.meetings,
  setList:l=>{DB.meetings=l;try{localStorage.setItem('hiarchut_db_live',JSON.stringify(DB))}catch(e){}},
  onChange:()=>{if(document.getElementById('v-trk').classList.contains('on'))renderTrk()},
  cols:m=>{const e=m.editions[m.editions.length-1]||{};const st={draft:'טיוטה',sent:'נשלח ללקוח',cancelled:'מבוטל'}[m.status||(m.cancelled?'cancelled':'draft')];return[['פרויקט',m.project],['לקוח',m.client],['תאריך ישיבה',m.mdate],['מהדורות',m.editions.length],['עודכן',e.date||''],['ממתין לתשובה',(e.rows||[]).filter(r=>r.w).length],['סטטוס',st]]}};
+/* Two open tabs of the app share this localStorage – keep this tab's meetings list fresh, or a stale
+   list here would overwrite meetings saved in the other tab and cloud.js would push them as deletions. */
+window.addEventListener('storage',e=>{if(e.key!=='hiarchut_db_live'||!e.newValue)return;try{const d=JSON.parse(e.newValue);DB.meetings=d.meetings||[];DB.roles=Object.assign(DB.roles||{},d.roles||{});HR_CLOUD.onChange()}catch(x){}});
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function fmtD(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return `${+d}.${+m}.${y.slice(2)}`}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),2200)}

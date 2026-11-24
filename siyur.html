@@ -351,7 +351,13 @@ const isInternal=c=>/@smdrtech\.co\.il\s*$/i.test(c.m||'');
 let saveT=null;
 let VER=0;
 function persist(){VER++;clearTimeout(saveT);saveT=setTimeout(()=>IDB.set('draft',F),300)}
-function persistV(){const p=IDB.set('visits',V);if(window.Cloud)Cloud.queue(SY_CLOUD);return p}
+/* Two open tabs of the app (e.g. the home-screen shortcut opened twice) share the same IndexedDB –
+   tell the other tabs to reload the visits list, or a stale list there would overwrite new visits
+   and cloud.js would push them to the Sheet as deletions. */
+const SYBC=('BroadcastChannel' in window)?new BroadcastChannel('siyur_visits'):null;
+function visitsSaved(p){return p.then(r=>{try{SYBC&&SYBC.postMessage(1)}catch(e){}return r})}
+if(SYBC)SYBC.onmessage=async()=>{try{const v=await IDB.get('visits');if(Array.isArray(v)){V=v;SY_CLOUD.onChange()}}catch(e){}};
+function persistV(){const p=visitsSaved(IDB.set('visits',V));if(window.Cloud)Cloud.queue(SY_CLOUD);return p}
 /* מעקב סיורים ↔ Google Sheet (cloud.js). Photos go to Drive ("שמדר – טפסים/סיורים - תמונות"); the sheet keeps "drive:<id>" in their place. */
 let PHMAP={}; // photo hash -> Drive file id (so a photo is uploaded once)
 async function phKey(d){const b=await crypto.subtle.digest('SHA-1',new TextEncoder().encode(d));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -368,7 +374,7 @@ async function resolvePhotos(state){ // drive:<id> -> picture (when a report mad
  if(n)IDB.set('phmap',PHMAP);return {n,bad};
 }
 const SY_CLOUD={name:'siyur',list:()=>V,
- setList:l=>{V=l;IDB.set('visits',V)},
+ setList:l=>{V=l;visitsSaved(IDB.set('visits',V))},
  onChange:()=>{if(document.getElementById('v-trk').classList.contains('on'))renderTrk()},
  cols:m=>[['פרויקט',m.project],['לקוח',m.client],['תאריך סיור',m.date],['ליקויים',m.bad],['לשבח',m.good],['סטטוס',(STATUS[m.status]||STATUS.draft).t],['PDF',m.pdfUrl||'']],
  toCloud:async m=>{const c=JSON.parse(JSON.stringify(Cloud.strip(m)));

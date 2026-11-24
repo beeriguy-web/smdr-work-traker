@@ -290,6 +290,11 @@
 
         #hv-form [data-stop]:focus { outline:3px solid #BC2129; outline-offset:2px; }
 
+        .title-wrap { display:flex; align-items:center; gap:8px; }
+        .btn-refresh { background:transparent; border:1px solid rgba(255,255,255,.7); color:#fff; border-radius:50%; width:32px; height:32px; padding:0; font-size:15px; line-height:1; cursor:pointer; flex:0 0 auto; }
+        .btn-refresh:hover { background:rgba(255,255,255,.18); }
+        .btn-refresh.spin { animation:smdrSpin .8s linear infinite; }
+        @keyframes smdrSpin { to { transform:rotate(360deg); } }
         .tab-sep { width:1px; background:rgba(255,255,255,.45); margin:3px 6px; }
         /* 4 pairs: the form on top, its tracker right under it */
         .view-tabs.pairs { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:6px; }
@@ -301,6 +306,8 @@
         @media (max-width: 760px) {
             .toolbar { padding:6px 10px 8px; gap:6px; }
             .toolbar-title { font-size:.85rem !important; flex:1 1 auto; }
+            .title-wrap { flex:1 1 auto; }
+            .btn-refresh { width:30px; height:30px; font-size:14px; }
             #form-actions { gap:6px !important; flex-wrap:nowrap !important; }
             #form-actions .btn { font-size:.8rem; padding:6px 10px; white-space:nowrap; }
             #btn-share { display:none; }
@@ -326,7 +333,7 @@
 
 <!-- ════ TOOLBAR ════ -->
 <div class="toolbar">
-    <span class="toolbar-title">📋 טופס הזמנת עבודה פנימית</span>
+    <div class="title-wrap"><span class="toolbar-title">📋 טופס הזמנת עבודה פנימית</span><button type="button" class="btn-refresh" id="btn-refresh" onclick="hardRefresh()" title="רענון – טעינת הגרסה העדכנית של האפליקציה (מה שהוקלד בטפסים נשמר)">🔄</button></div>
     <div class="view-tabs pairs">
         <div class="pair"><button class="view-tab act active" data-v="wo" onclick="showView('wo')">הזמנת עבודה</button><button class="view-tab trk" data-v="wt" onclick="showView('wt')"><span class="ic">📊 </span>מעקב עבודות</button></div>
         <div class="pair"><button class="view-tab act" data-v="hr" onclick="showView('hr')">ישיבת היערכות</button><button class="view-tab trk" data-v="hrtrack" onclick="showView('hrtrack')"><span class="ic">📋 </span>מעקב היערכות</button></div>
@@ -2051,6 +2058,98 @@ function actEmail() {
     }
     currentView === 'hv' ? hvSendEmail() : sendEmail();
 }
+
+/* ══════════════════════════════════════════════════════
+   טיוטות: טופס הזמנת עבודה + מסירה לתכנון נשמרים אוטומטית במכשיר
+   (כמו בישיבת היערכות ובדוח סיור) – חוזרים אחרי רענון/סגירה.
+   ══════════════════════════════════════════════════════ */
+const WO_DRAFT = 'smdr_wo_draft_v1', HV_DRAFT = 'smdr_hv_draft_v1';
+const WO_FIELDS = ['f-to','f-from','f-date','f-client','f-site','f-wnum','f-delivery','f-corder','f-jobname','f-desc','f-appr-by','f-appr-role'];
+const HV_EXTRA = ['hv-appr-by','hv-appr-role'];
+function putDraft(key, d, heavy) {
+    // pictures can be large – if they don't fit, keep the text at least
+    try { localStorage.setItem(key, JSON.stringify(Object.assign({}, d, heavy))); return; } catch (e) {}
+    try { localStorage.setItem(key, JSON.stringify(d)); } catch (e) {}
+}
+function getDraft(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } }
+function woSaveDraft() {
+    const d = { f: {} };
+    WO_FIELDS.forEach(id => { const el = document.getElementById(id); if (el) d.f[id] = el.value; });
+    d.contacts = collectContacts();
+    d.rows = collectRows();
+    putDraft(WO_DRAFT, d, { imgs: attachedImages });
+}
+function woRestoreDraft() {
+    const d = getDraft(WO_DRAFT); if (!d) return;
+    Object.keys(d.f || {}).forEach(id => { const el = document.getElementById(id); if (el) el.value = d.f[id]; });
+    if (d.contacts && d.contacts.length) { formContacts = d.contacts.map(c => ({ name: c.name || '', role: c.role || '', phone: c.phone || '', email: c.email || '' })); renderContacts(); }
+    if (d.rows && d.rows.length) {
+        document.getElementById('items-body').innerHTML = '';
+        d.rows.forEach(() => addRow());
+        document.querySelectorAll('#items-body tr').forEach((tr, i) => {
+            const inp = tr.querySelectorAll('input'), r = d.rows[i];
+            inp[0].value = r.desc || ''; inp[1].value = r.qty || ''; inp[2].value = r.notes || '';
+        });
+    }
+    if (Array.isArray(d.imgs)) { attachedImages = d.imgs; renderImageGallery(); }
+}
+function hvSaveDraft() {
+    const d = hvCollect();
+    HV_EXTRA.forEach(id => d[id] = v(id));
+    putDraft(HV_DRAFT, d, { sketches: hvSketches });
+}
+function hvRestoreDraft() {
+    const d = getDraft(HV_DRAFT); if (!d) return;
+    hvLoad(d);
+    HV_EXTRA.forEach(id => { const el = document.getElementById(id); if (el && d[id] != null) el.value = d[id]; });
+    if (Array.isArray(d.sketches)) { hvSketches = d.sketches; hvRenderThumbs(); }
+}
+// save while typing / clicking (add-row, contact pick, delete…), and whenever the page is left
+const _draftT = {};
+function queueDraft(which) {
+    clearTimeout(_draftT[which]);
+    _draftT[which] = setTimeout(which === 'wo' ? woSaveDraft : hvSaveDraft, 400);
+}
+['input', 'change', 'click', 'paste'].forEach(ev => {
+    document.getElementById('main-form').addEventListener(ev, () => queueDraft('wo'), true);
+    document.getElementById('hv-form').addEventListener(ev, () => queueDraft('hv'), true);
+});
+function saveAllDrafts() { try { woSaveDraft(); } catch (e) {} try { hvSaveDraft(); } catch (e) {} }
+window.addEventListener('pagehide', saveAllDrafts);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveAllDrafts(); });
+// "טופס חדש", image changes and opening a handover from the tracker don't always fire an event on the form
+['newForm', 'hvNewForm', 'renderImageGallery', 'hvRenderThumbs', 'trOpen'].forEach(fn => {
+    const orig = window[fn]; if (typeof orig !== 'function') return;
+    window[fn] = function () { const r = orig.apply(this, arguments); queueDraft('wo'); queueDraft('hv'); return r; };
+});
+try { woRestoreDraft(); } catch (e) {}
+try { hvRestoreDraft(); } catch (e) {}
+
+/* ══════════════════════════════════════════════════════
+   🔄 רענון: מוריד את הגרסה העדכנית של כל חלקי האפליקציה (עוקף את זיכרון הדפדפן)
+   וחוזר לאותו מסך. מה שהוקלד בטפסים נשמר בטיוטות.
+   ══════════════════════════════════════════════════════ */
+async function hardRefresh() {
+    const btn = document.getElementById('btn-refresh'); if (btn) btn.classList.add('spin');
+    saveAllDrafts();
+    try { sessionStorage.setItem('smdr_view', currentView); } catch (e) {}
+    const urls = new Set([location.pathname, location.href.split('#')[0]]);
+    const add = u => { try { const x = new URL(u, location.href); if (x.origin === location.origin) urls.add(x.href); } catch (e) {} };
+    document.querySelectorAll('script[src], link[rel="manifest"]').forEach(el => add(el.src || el.href));
+    document.querySelectorAll('iframe[src]').forEach(f => {
+        add(f.src);
+        try { f.contentDocument.querySelectorAll('script[src]').forEach(el => add(el.src)); } catch (e) {}
+    });
+    await Promise.race([
+        Promise.all([...urls].map(u => fetch(u, { cache: 'reload' }).catch(() => {}))),
+        new Promise(r => setTimeout(r, 6000))     // don't hang without a connection
+    ]);
+    location.reload();
+}
+(function restoreViewAfterRefresh() {
+    let vw = null; try { vw = sessionStorage.getItem('smdr_view'); sessionStorage.removeItem('smdr_view'); } catch (e) {}
+    if (vw && vw !== 'wo' && VIEW_TITLES[vw]) setTimeout(() => showView(vw), 0);
+})();
 </script>
 
 </body>

@@ -46,7 +46,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 .st button.bad.on{background:var(--bad);color:#fff}
 .st button.good.on{background:var(--good);color:#fff}
 .det{margin-top:8px;display:none}
-.it.bad .det,.it.good .det,.it.free .det{display:block}
+.it.bad .det,.it.ok .det,.it.free .det{display:block}
 .ph{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center}
 .ph .th{position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
 .ph .th img{width:100%;height:100%;object-fit:cover;display:block}
@@ -102,12 +102,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 .paper td.n{width:28px;text-align:center;color:#999}
 .paper td.s{width:64px;text-align:center;font-weight:700;white-space:nowrap}
 .paper td.r{width:86px;font-size:11.5px;color:#666;white-space:nowrap}
-.paper .sbad{color:#bc2129}.paper .sgood{color:#1d6fd1}
+.paper .sbad{color:#bc2129}.paper .sgood{color:#1d6fd1}.paper .sokd{color:#1e7a46}
 .paper td.f{white-space:pre-line;color:#b0141d;font-weight:500}
 .paper tr.good td.f{color:#16559f}
+.paper tr.okd td.f{color:#333;font-weight:400}
 .paper tr.pics td{border-top:0;padding-top:0}
 .paper .pp{display:flex;flex-wrap:wrap;gap:8px}
-.paper .pp img{width:calc(50% - 4px);height:230px;object-fit:contain;background:#f3f3f3;border-radius:5px;border:1px solid #ddd} /* whole photo, 2 per row */
+.paper .pp img{width:calc((100% - 16px) / 3);height:182px;object-fit:contain;background:#f3f3f3;border-radius:5px;border:1px solid #ddd} /* whole photo, 3 per row (~6.3×4.8 cm) */
 .paper .oklist{columns:2;column-gap:24px;font-size:12.5px;margin:0;padding:8px 22px 8px 12px;border:1px solid #d7ecdf;border-radius:8px;background:#f7fcf9}
 .paper .oklist li{margin:2px 0;break-inside:avoid}
 .paper .gen{white-space:pre-line;font-size:13.5px;border:1px solid #ead6d6;border-radius:8px;padding:10px 12px}
@@ -212,12 +213,11 @@ body.embedded .sticky{top:52px}
 
   <div class="sticky" id="prog">
     <span class="pill bad" id="pBad"></span>
-    <span class="pill good" id="pGood"></span>
     <span class="pill ok" id="pOk"></span>
     <span class="pill" id="pLeft"></span>
     <button class="btn" style="margin-inline-start:auto" onclick="show('sum')">לדוח ←</button>
   </div>
-  <div class="note" style="margin:-6px 4px 10px">סמן רק מה שבדקת: ✓ תקין · ✗ ליקוי · ★ לשבח. סעיף שלא סומן לא ייכנס לדוח. בליקוי ובלשבח – תיאור קצר ותמונות (מצלמה או גלריה).</div>
+  <div class="note" style="margin:-6px 4px 10px">סמן רק מה שבדקת: ✓ תקין · ✗ ליקוי. סעיף שלא סומן לא ייכנס לדוח. בליקוי – תיאור קצר ותמונות (מצלמה או גלריה); גם בתקין אפשר לצרף תמונה והערה (לא חובה).</div>
 
   <div id="sections"></div>
 
@@ -263,7 +263,7 @@ body.embedded .sticky{top:52px}
 <!-- ===================== TRACKER ===================== -->
 <section class="view trk" id="v-trk">
   <div class="note" style="margin-bottom:10px">כל דוח נשמר כאן בהפקת PDF או בשליחה. "פתח" טוען את הדוח לטופס לתיקון ושליחה חוזרת.</div>
-  <table><thead><tr><th>פרויקט</th><th>לקוח</th><th>תאריך סיור</th><th>ליקויים</th><th>לשבח</th><th>סטטוס</th><th></th></tr></thead><tbody id="trkBody"></tbody></table>
+  <table><thead><tr><th>פרויקט</th><th>לקוח</th><th>תאריך סיור</th><th>ליקויים</th><th>סטטוס</th><th></th></tr></thead><tbody id="trkBody"></tbody></table>
 </section>
 </main>
 
@@ -376,7 +376,7 @@ async function resolvePhotos(state){ // drive:<id> -> picture (when a report mad
 const SY_CLOUD={name:'siyur',list:()=>V,
  setList:l=>{V=l;visitsSaved(IDB.set('visits',V))},
  onChange:()=>{if(document.getElementById('v-trk').classList.contains('on'))renderTrk()},
- cols:m=>[['פרויקט',m.project],['לקוח',m.client],['תאריך סיור',m.date],['ליקויים',m.bad],['לשבח',m.good],['סטטוס',(STATUS[m.status]||STATUS.draft).t],['PDF',m.pdfUrl||'']],
+ cols:m=>[['פרויקט',m.project],['לקוח',m.client],['תאריך סיור',m.date],['ליקויים',m.bad],['סטטוס',(STATUS[m.status]||STATUS.draft).t],['PDF',m.pdfUrl||'']],
  toCloud:async m=>{const c=JSON.parse(JSON.stringify(Cloud.strip(m)));
   for(const it of Object.values((c.state&&c.state.it)||{}))if(it.ph&&it.ph.length)it.ph=await Promise.all(it.ph.map(photoRef));
   return c}};
@@ -458,20 +458,20 @@ function addContact(L){
 }
 
 /* ---------------------------------------------------------------- checklist rendering */
-function I(id){return F.it[id]||(F.it[id]={st:'',note:'',ph:[]})}
+function I(id){const a=F.it[id]||(F.it[id]={st:'',note:'',ph:[]});if(a.st==='good')a.st='ok';return a}
 function itemsOf(sec){return sec==='N'?F.extra.map(id=>BY[id]):CHK.filter(x=>x.sec===sec)}
 function itemHTML(x,removable){
  const a=I(x.id);
  return `<div class="it ${a.st}" id="it-${x.id}">
   <div class="row"><div class="tx">${esc(x.t)}<span class="ref">${x.sec==='N'?esc(x.r):DOC[x.sec]+' '+esc(x.r)}</span></div>
-   <div class="st">${stBtn(x.id,'ok','✓ תקין')}${stBtn(x.id,'bad','✗ ליקוי')}${stBtn(x.id,'good','★ לשבח')}</div></div>
-  <div class="det">${detHTML(x.id,a,a.st==='good'?'מה ראית? (לשבח)':'מה הליקוי? מה צריך לתקן?')}</div>
+   <div class="st">${stBtn(x.id,'ok','✓ תקין')}${stBtn(x.id,'bad','✗ ליקוי')}</div></div>
+  <div class="det">${detHTML(x.id,a,a.st==='ok'?'הערה (לא חובה)':'מה הליקוי? מה צריך לתקן?')}</div>
   ${removable?`<button class="rm" onclick="removeExtra('${x.id}')">✕ הסר סעיף</button>`:''}
  </div>`;
 }
 function stBtn(id,k,t){return `<button class="${k} ${I(id).st===k?'on':''}" onclick="setSt('${id}','${k}')">${t}</button>`}
 function detHTML(id,a,ph){
- return `<textarea rows="2" placeholder="${ph}" oninput="I('${id}').note=this.value;persist()">${esc(a.note)}</textarea>
+ return `<textarea rows="${a.st==='ok'?1:2}" placeholder="${ph}" oninput="I('${id}').note=this.value;persist()">${esc(a.note)}</textarea>
   <div class="ph">${a.ph.map((p,i)=>`<div class="th"><img src="${p}" onclick="viewPh('${id}',${i})"><button onclick="rmPh('${id}',${i})">✕</button></div>`).join('')}
    <button class="phbtn" onclick="pickPh('${id}','camera')"><b>📷</b>צלם</button><button class="phbtn" onclick="pickPh('${id}','picker')"><b>🖼️</b>מהגלריה</button></div>`;
 }
@@ -496,7 +496,7 @@ function freeHTML(f,i){
   <div class="row"><div class="tx" style="display:flex;gap:6px;flex-wrap:wrap">
     <select style="width:auto" onchange="F.free[${i}].topic=this.value;persist()">${FREE_TOPICS.map(t=>`<option ${t===f.topic?'selected':''}>${t}</option>`).join('')}</select>
     <input style="flex:1;min-width:160px" placeholder="כותרת הסעיף" value="${esc(f.title)}" oninput="F.free[${i}].title=this.value;persist()"></div>
-   <div class="st">${stBtn(f.id,'ok','✓ תקין')}${stBtn(f.id,'bad','✗ ליקוי')}${stBtn(f.id,'good','★ לשבח')}</div></div>
+   <div class="st">${stBtn(f.id,'ok','✓ תקין')}${stBtn(f.id,'bad','✗ ליקוי')}</div></div>
   <div class="det">${detHTML(f.id,a,'תיאור')}</div>
   <button class="rm" onclick="removeFree(${i})">✕ הסר סעיף</button></div>`;
 }
@@ -506,12 +506,11 @@ function refreshIt(id){
  updProg();
 }
 function setSt(id,k){const a=I(id);a.st=a.st===k?'':k;refreshIt(id);persist();
- if(a.st==='bad'||a.st==='good'){const t=document.querySelector('#it-'+id+' textarea');if(t&&!t.value)t.focus()}}
+ if(a.st==='bad'){const t=document.querySelector('#it-'+id+' textarea');if(t&&!t.value)t.focus()}}
 function allIds(){return CHK.filter(x=>x.sec!=='N').map(x=>x.id).concat(F.extra,F.free.map(f=>f.id))}
 function updProg(){
- const ids=allIds();const c={ok:0,bad:0,good:0,'':0};ids.forEach(id=>c[I(id).st]++);
+ const ids=allIds();const c={ok:0,bad:0,'':0};ids.forEach(id=>c[I(id).st]++);
  document.getElementById('pBad').textContent=`✗ ${c.bad} ליקויים`;
- document.getElementById('pGood').textContent=`★ ${c.good} לשבח`;
  document.getElementById('pOk').textContent=`✓ ${c.ok} תקין`;
  document.getElementById('pLeft').textContent=`${c['']} לא נבדקו`;
  ['T','P','N'].forEach(s=>{const e=document.getElementById('cnt-'+s);if(!e)return;
@@ -559,9 +558,10 @@ function resetForm(){ask('לפתוח טופס חדש? הטופס הנוכחי י
 /* ---------------------------------------------------------------- report */
 function label(id){const x=BY[id];if(x)return{g:x.g,t:x.t,ref:x.sec==='N'?x.r:DOC[x.sec]+' '+x.r,sec:x.sec==='N'?'N':x.sec};const f=F.free.find(f=>f.id===id);return{g:f.topic,t:f.title||'(ללא כותרת)',ref:'',sec:'N'}}
 function rows(){
- const out={bad:[],good:[],ok:[]};
- allIds().forEach(id=>{const a=I(id);if(!a.st)return;out[a.st].push({id,...label(id),note:a.note,ph:a.ph,st:a.st})});
- let n=0;out.bad.forEach(r=>r.n=++n);out.good.forEach(r=>r.n=++n);return out;
+ const out={bad:[],ok:[],okDoc:[]};   // okDoc = OK items that have a photo or a note (shown with their photos)
+ allIds().forEach(id=>{const a=I(id);if(!a.st)return;const r={id,...label(id),note:a.note,ph:a.ph,st:a.st};
+  if(a.st==='bad')out.bad.push(r);else if((a.ph&&a.ph.length)||(a.note||'').trim())out.okDoc.push(r);else out.ok.push(r)});
+ let n=0;out.bad.forEach(r=>r.n=++n);out.okDoc.forEach(r=>r.n=++n);return out;
 }
 function findingRows(list,cls,mark){
  return list.map(r=>`<tr class="${cls}"><td class="n">${r.n}</td><td><b>${esc(r.g)}</b><br>${esc(r.t)}</td><td class="f">${esc(r.note)||'—'}</td><td class="s ${'s'+cls}">${mark}</td><td class="r">${esc(r.ref)}</td></tr>`+
@@ -575,9 +575,9 @@ function renderSummary(){
   <div><b>פרויקט / אתר:</b> ${esc(F.project)}</div><div><b>מספר פרויקט:</b> <span dir="ltr" style="unicode-bidi:isolate">${esc(F.job)}</span></div>
   ${F.stage?`<div><b>קומה / שלב:</b> ${esc(F.stage)}</div>`:''}${escText()?`<div class="w"><b>מלווים מטעם הלקוח:</b> ${esc(escText())}</div>`:''}
   <div class="w"><b>עורך הסיור והדוח:</b> גיא בארי, שמדר טכנולוגיות בע"מ</div></div>
- <div class="kpi"><div class="k1"><b>${R.bad.length}</b>ליקויים</div><div class="k2"><b>${R.good.length}</b>לשבח</div><div class="k3"><b>${R.ok.length}</b>נבדקו ותקינים</div></div>`;
+ <div class="kpi"><div class="k1"><b>${R.bad.length}</b>ליקויים</div><div class="k3"><b>${R.ok.length+R.okDoc.length}</b>נבדקו ותקינים</div></div>`;
  if(R.bad.length)h+=`<h3>ליקויים לטיפול</h3><div class="wrap"><table>${head}<tbody>${findingRows(R.bad,'bad','✗ ליקוי')}</tbody></table></div>`;
- if(R.good.length)h+=`<h3>עבודה טובה</h3><div class="wrap"><table>${head}<tbody>${findingRows(R.good,'good','★ לשבח')}</tbody></table></div>`;
+ if(R.okDoc.length)h+=`<h3>נבדקו ונמצאו תקינים – תיעוד</h3><div class="wrap"><table>${head.replace('<th>ממצא</th>','<th>הערה</th>')}<tbody>${findingRows(R.okDoc,'okd','✓ תקין')}</tbody></table></div>`;
  if(R.ok.length)h+=`<h3>נבדקו ונמצאו תקינים</h3><ul class="oklist">${R.ok.map(r=>`<li>${esc(r.g)} – ${esc(r.t)}</li>`).join('')}</ul>`;
  if(F.general.trim())h+=`<h3>הערות כלליות</h3><div class="gen">${esc(F.general)}</div>`;
  if(R.bad.length)h+=`<p style="font-size:12px;color:#555;margin:14px 0 0">הסעיפים מתייחסים להוראות השימוש והבטיחות של שמדר טכנולוגיות: תבניות מתכת דגם אפולו (גרסה 2.61) ופיגום כבד תלוי (גרסה 2.81). הינכם נדרשים לטפל בליקויים באופן מיידי.</p>`;
@@ -586,7 +586,7 @@ function renderSummary(){
  if(ccN.length)h+=`<div class="copies"><b>העתק לידיעה:</b> ${ccN.map(c=>esc(c.n)+(c.r?' – '+esc(c.r):'')).join(', ')}</div>`;
  h+=`<div class="ft"><span>${fmtD(today())}</span><span>דוח סיור באתר – ${esc(F.project)}</span></div>`;
  document.getElementById('paper').innerHTML=h;
- const none=!R.bad.length&&!R.good.length&&!R.ok.length;
+ const none=!R.bad.length&&!R.okDoc.length&&!R.ok.length;
  document.getElementById('sumNote').textContent=none?'⚠️ עדיין לא סומן אף סעיף בטופס.':'';
  const M=mailText(R);window._mail=M;
  const to=F.contacts.map(c=>c.m).filter(Boolean);
@@ -600,7 +600,6 @@ function mailText(R){
  if(R.bad.length){t+=`\nבסיור ${R.bad.length===1?'נמצא ליקוי אחד שדורש':'נמצאו '+R.bad.length+' ליקויים שדורשים'} טיפול:\n`+R.bad.map(r=>`${r.n}. ${r.g}: ${(r.note||r.t).replace(/\n/g,' ')}‏`).join('\n')+'\n';
   t+=`\nהינכם נדרשים לטפל בליקויים באופן מיידי. הפירוט והתמונות בדוח המצורף.\n`}
  else t+=`\nלא נמצאו ליקויים בסיור.\n`;
- if(R.good.length)t+=`\nתודה על העבודה המסודרת – ${R.good.length===1?'סעיף אחד צוין':R.good.length+' סעיפים צוינו'} לשבח בדוח.\n`;
  t+='\n\n';
  return{subj,body:t};
 }
@@ -719,7 +718,7 @@ function showHelper(){
 function saveVisit(status){
  const R=rows();if(!F.id)F.id='v'+Date.now();
  if(status)F.status=status;
- const rec={id:F.id,project:F.project||'ללא שם',client:F.client,date:F.date,bad:R.bad.length,good:R.good.length,status:F.status||'draft',saved:today(),state:JSON.parse(JSON.stringify(F))};
+ const rec={id:F.id,project:F.project||'ללא שם',client:F.client,date:F.date,bad:R.bad.length,status:F.status||'draft',saved:today(),state:JSON.parse(JSON.stringify(F))};
  const i=V.findIndex(x=>x.id===F.id);if(i>=0){if(V[i].pdfUrl)rec.pdfUrl=V[i].pdfUrl;V[i]=rec}else V.unshift(rec);
  persistV();persist();
 }
@@ -728,8 +727,8 @@ function renderTrk(){
  const b=document.getElementById('trkBody');
  b.innerHTML=V.length?V.map(m=>{const S=STATUS[m.status]||STATUS.draft;
   const sel=`<select onchange="setStatus('${m.id}',this.value)" style="width:auto;padding:4px 8px;font-weight:600;background:${S.bg};color:${S.c};border-color:${S.bg}">`+Object.keys(STATUS).map(k=>`<option value="${k}" ${k===m.status?'selected':''}>${STATUS[k].t}</option>`).join('')+`</select>`;
-  return `<tr><td><b>${esc(m.project)}</b></td><td>${esc(m.client)}</td><td>${fmtD(m.date)}</td><td>${m.bad?`<span class="pill bad">✗ ${m.bad}</span>`:'—'}</td><td>${m.good?`<span class="pill good">★ ${m.good}</span>`:'—'}</td><td>${sel}</td><td style="white-space:nowrap">${m.pdfUrl?`<a class="btn sec" style="text-decoration:none" href="${m.pdfUrl}" target="_blank" rel="noopener">📄 PDF</a> `:''}<button class="btn sec" onclick="openVisit('${m.id}')">פתח</button> <button class="btn sec" style="color:#bc2129;border-color:#e3cfcf" onclick="delVisit('${m.id}')">🗑 מחק</button></td></tr>`}).join('')
-  :'<tr><td colspan="7" class="note">עדיין אין דוחות שמורים.</td></tr>';
+  return `<tr><td><b>${esc(m.project)}</b></td><td>${esc(m.client)}</td><td>${fmtD(m.date)}</td><td>${m.bad?`<span class="pill bad">✗ ${m.bad}</span>`:'—'}</td><td>${sel}</td><td style="white-space:nowrap">${m.pdfUrl?`<a class="btn sec" style="text-decoration:none" href="${m.pdfUrl}" target="_blank" rel="noopener">📄 PDF</a> `:''}<button class="btn sec" onclick="openVisit('${m.id}')">פתח</button> <button class="btn sec" style="color:#bc2129;border-color:#e3cfcf" onclick="delVisit('${m.id}')">🗑 מחק</button></td></tr>`}).join('')
+  :'<tr><td colspan="6" class="note">עדיין אין דוחות שמורים.</td></tr>';
 }
 function setStatus(id,s){const m=V.find(x=>x.id===id);if(!m)return;m.status=s;m.state.status=s;if(F.id===id)F.status=s;persistV();renderTrk();toast('הסטטוס עודכן: '+STATUS[s].t)}
 async function openVisit(id){const m=V.find(x=>x.id===id);if(!m)return;

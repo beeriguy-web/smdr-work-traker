@@ -306,16 +306,16 @@ const CHK=[
  {id:'t22',sec:'T',g:'מצב הציוד',t:'אוזני הרמה תקינות ומחוברות',r:'א.17–א.18'},
  {id:'t23',sec:'T',g:'בטיחות עובדים',t:'רתמה בעבודה מעל 2 מ\' ובקצה המבנה',r:'א.20'},
  {id:'p8',sec:'P',g:'תלייה על הקיר',t:'הקונזולה בתוך וו התלייה, לא מחוצה לו ולא בורג ישיר לקיר',r:'ב.19–ב.20'},
- {id:'p9',sec:'P',g:'תלייה על הקיר',t:'מנגנון נעילה מורכב כמו שצריך בכל קונזולה (נועל / נועל-חולץ)',r:'ב.17'},
+ {id:'p9',sec:'P',g:'תלייה על הקיר',t:'מנגנון נעילה מורכב כמו שצריך בכל קונזולה (נועל / נועל-חולץ) – ללא חוט שזור שמבטל את פעולת הנעילה',r:'ב.17'},
  {id:'p10',sec:'P',g:'תלייה על הקיר',t:'אום פרפר 120 מ"מ נעול על הבטון, לא על שכבת הבידוד',r:'ב.22, ג.2'},
  {id:'p11',sec:'P',g:'תלייה על הקיר',t:'תלוי רק על קיר בטון מזוין, לא על בלוקים',r:'ב.23–ב.24'},
  {id:'p4',sec:'P',g:'מעקה',t:'עמוד מעקה מחובר ב-2 ברגי 5/8"',r:'ב.11'},
  {id:'p5',sec:'P',g:'מעקה',t:'קרשים פונים פנימה, כולם מסומרים דרך החורים',r:'ב.12–ב.13'},
  {id:'p6',sec:'P',g:'מעקה',t:'סטופר לעמוד מעקה בקצה משטח',r:'ב.14'},
  {id:'p7',sec:'P',g:'מעקה',t:'אין כיסוי מעקה בדיקטים באזור רוחות',r:'ב.31'},
- {id:'p1',sec:'P',g:'הרכבה לפי תוכנית',t:'הפיגום בנוי לפי החתך: ליגרים, אונטר ליגרים, מרווחים וכמות',r:'ב.9–ב.10'},
- {id:'p2',sec:'P',g:'הרכבה לפי תוכנית',t:'אין גישור בין משטחים שלא מופיע בתוכנית',r:'ב.15'},
- {id:'p3',sec:'P',g:'הרכבה לפי תוכנית',t:'ברגים מקוריים של שמדר בלבד',r:'ב.16, ב.18'},
+ {id:'p1',sec:'P',g:'הרכבה לפי פרטים ותוכנית',t:'הפיגום בנוי לפי החתך: ליגרים, אונטר ליגרים, מרווחים וכמות',r:'ב.9–ב.10'},
+ {id:'p2',sec:'P',g:'הרכבה לפי פרטים ותוכנית',t:'אין גישור בין משטחים שלא מופיע בתוכנית',r:'ב.15'},
+ {id:'p21',sec:'P',g:'הרכבה לפי פרטים ותוכנית',t:'אוזני ההרמה של הפיגום מורכבים נכון',r:''},
  {id:'p12',sec:'P',g:'שימוש בפיגום',t:'על הפיגום רק תבניות עומדות, בלי "חניות ביניים"',r:'ב.2–ב.3'},
  {id:'p13',sec:'P',g:'שימוש בפיגום',t:'לא משמש בסיס לתמיכות או ליציקה',r:'ב.4–ב.5'},
  {id:'p14',sec:'P',g:'שימוש בפיגום',t:'נקי מכלים, מסמרים, שאריות בטון, עץ וברזל',r:'ב.28'},
@@ -325,6 +325,7 @@ const CHK=[
  {id:'p18',sec:'P',g:'עמוד עם וו בפתחים',t:'מורכב, מעוגן ומפולס לפי התוכנית',r:'ב.33, ו.4–ו.7'},
  {id:'p19',sec:'P',g:'אחסון פיגום',t:'מקום בטוח ויציב, בלי משטחים אחד על השני',r:'ב.29–ב.30'},
  {id:'p20',sec:'P',g:'בטיחות עובדים',t:'רתמה מעוגנת לנקודה שאינה הפיגום, בקצה המבנה',r:'א.16–א.17'},
+ {id:'p3',sec:'N',g:'הרכבה לפי פרטים ותוכנית',t:'ברגים מקוריים של שמדר בלבד',r:'פיגום ב.16, ב.18'},
  {id:'n1',sec:'N',g:'פריקה ממשאית',t:'פאנל אחד בכל פעם, באוזני הרמה ולא ברצועות',r:'תבניות ב.1–ב.3'},
  {id:'n2',sec:'N',g:'פריקה ממשאית',t:'קסדה ונעלי מגן לכל העובדים, כולל הנהג',r:'תבניות ב.4–ב.5'},
  {id:'n3',sec:'N',g:'הנפת תבניות',t:'רוחב מקסימלי 6 מ\', מרחק בין אוזניים עד 4 מ\', שרשראות לדופן אחת',r:'תבניות ד.1–ד.2, ד.16'},
@@ -463,7 +464,7 @@ function itemsOf(sec){return sec==='N'?F.extra.map(id=>BY[id]):CHK.filter(x=>x.s
 function itemHTML(x,removable){
  const a=I(x.id);
  return `<div class="it ${a.st}" id="it-${x.id}">
-  <div class="row"><div class="tx">${esc(x.t)}<span class="ref">${x.sec==='N'?esc(x.r):DOC[x.sec]+' '+esc(x.r)}</span></div>
+  <div class="row"><div class="tx">${esc(x.t)}${x.r?`<span class="ref">${x.sec==='N'?esc(x.r):DOC[x.sec]+' '+esc(x.r)}</span>`:''}</div>
    <div class="st">${stBtn(x.id,'ok','✓ תקין')}${stBtn(x.id,'bad','✗ ליקוי')}</div></div>
   <div class="det">${detHTML(x.id,a,a.st==='ok'?'הערה (לא חובה)':'מה הליקוי? מה צריך לתקן?')}</div>
   ${removable?`<button class="rm" onclick="removeExtra('${x.id}')">✕ הסר סעיף</button>`:''}
@@ -507,7 +508,10 @@ function refreshIt(id){
 }
 function setSt(id,k){const a=I(id);a.st=a.st===k?'':k;refreshIt(id);persist();
  if(a.st==='bad'){const t=document.querySelector('#it-'+id+' textarea');if(t&&!t.value)t.focus()}}
-function allIds(){return CHK.filter(x=>x.sec!=='N').map(x=>x.id).concat(F.extra,F.free.map(f=>f.id))}
+function allIds(){
+ // items moved from the main list to the optional bank (p3, 2026-11-24): a marked one in an older visit/draft is kept as an added item
+ Object.keys(F.it||{}).forEach(id=>{if(BY[id]&&BY[id].sec==='N'&&F.it[id].st&&!F.extra.includes(id))F.extra.push(id)});
+ return CHK.filter(x=>x.sec!=='N').map(x=>x.id).concat(F.extra,F.free.map(f=>f.id))}
 function updProg(){
  const ids=allIds();const c={ok:0,bad:0,'':0};ids.forEach(id=>c[I(id).st]++);
  document.getElementById('pBad').textContent=`✗ ${c.bad} ליקויים`;
@@ -556,7 +560,7 @@ function ask(t,ok){const b=document.getElementById('mdlBox');b.innerHTML=`<p>${t
 function resetForm(){ask('לפתוח טופס חדש? הטופס הנוכחי יימחק (דוחות שמורים נשארים במעקב).',()=>{F=blank();renderAll();persist();scrollTo(0,0)})}
 
 /* ---------------------------------------------------------------- report */
-function label(id){const x=BY[id];if(x)return{g:x.g,t:x.t,ref:x.sec==='N'?x.r:DOC[x.sec]+' '+x.r,sec:x.sec==='N'?'N':x.sec};const f=F.free.find(f=>f.id===id);return{g:f.topic,t:f.title||'(ללא כותרת)',ref:'',sec:'N'}}
+function label(id){const x=BY[id];if(x)return{g:x.g,t:x.t,ref:!x.r?'':x.sec==='N'?x.r:DOC[x.sec]+' '+x.r,sec:x.sec==='N'?'N':x.sec};const f=F.free.find(f=>f.id===id);return{g:f.topic,t:f.title||'(ללא כותרת)',ref:'',sec:'N'}}
 function rows(){
  const out={bad:[],ok:[],okDoc:[]};   // okDoc = OK items that have a photo or a note (shown with their photos)
  allIds().forEach(id=>{const a=I(id);if(!a.st)return;const r={id,...label(id),note:a.note,ph:a.ph,st:a.st};

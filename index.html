@@ -655,7 +655,7 @@
         <div style="font-size:.78rem;color:#888;margin-top:8px">שורה באדום = עבר תאריך האספקה והפרויקט עדיין לא הושלם. שורה בצהוב = אספקה בתוך 7 ימים. "ימים" = ימים מאז המסירה.</div>
     </div>
 </div>
-<div class="hidden-view" id="wt-view" style="max-width:1300px;margin:16px auto 0;"><iframe id="wt-frame" title="מעקב עבודות" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#f4f6fa;" src="avodot.html?v=20261121a"></iframe></div>
+<div class="hidden-view" id="wt-view" style="max-width:1300px;margin:16px auto 0;"><iframe id="wt-frame" title="מעקב עבודות" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#f4f6fa;" src="avodot.html?v=20261124a"></iframe></div>
 <div class="hidden-view" id="hr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="hr-frame" title="ישיבת היערכות לתכנון" allow="clipboard-write" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="hiarchut.html?v=20261123b"></iframe></div>
 <div class="hidden-view" id="sr-view" style="max-width:1100px;margin:16px auto 0;"><iframe id="sr-frame" title="דוח סיור באתר" allow="clipboard-write; web-share" style="width:100%;height:calc(100vh - 90px);border:0;border-radius:10px;background:#eef2f7;" src="siyur.html?v=20261123a"></iframe></div>
 
@@ -1192,6 +1192,7 @@ function pushToWorkTracker() {
         localStorage.setItem('wt_v4', JSON.stringify(jobs));
         localStorage.setItem('wt_cnt4', String(counter));
         if (window.Cloud) Cloud.queue(Cloud.WORK, 300);   // → מעקב עבודות in the Google Sheet
+        try { const w = document.getElementById('wt-frame').contentWindow; if (w && w.reloadLocal) w.reloadLocal(); } catch (e) {}   // keep the embedded tracker's list fresh
     } catch (e) { /* localStorage unavailable — skip silently */ }
 }
 

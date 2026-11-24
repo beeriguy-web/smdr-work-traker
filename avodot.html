@@ -420,7 +420,21 @@ const WK = Object.assign({}, window.Cloud ? Cloud.WORK : {}, {
   setList: l => { Cloud.WORK.setList(l); jobs = l; counter = parseInt(localStorage.getItem('wt_cnt4') || '0'); },
   onChange: () => { render(); updateStats(); }
 });
-function cloudSync() { if (window.Cloud) Cloud.sync(WK); }
+/* The tracker stays loaded inside the main app (iframe) while the work-order form adds jobs
+   straight into localStorage – always re-read before showing/saving, or a stale in-memory list
+   would overwrite the new jobs and cloud.js would push them to the Sheet as deletions. */
+function reloadLocal() {
+  try {
+    const fresh = JSON.parse(localStorage.getItem('wt_v4') || '[]');
+    const newIds = new Set(jobs.filter(j => j._new).map(j => j.id));
+    fresh.forEach(j => { if (newIds.has(j.id)) j._new = true; });
+    jobs = fresh;
+    counter = Math.max(counter, parseInt(localStorage.getItem('wt_cnt4') || '0') || 0);
+    render(); updateStats();
+  } catch (e) {}
+}
+window.addEventListener('storage', e => { if (e.key === 'wt_v4' || e.key === null) reloadLocal(); });
+function cloudSync() { reloadLocal(); if (window.Cloud) Cloud.sync(WK); }
 
 function loadSample() {
   [

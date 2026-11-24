@@ -5,10 +5,12 @@
  *  - חדש: תמונות סיורים ו-PDF של דוחות נשמרים בגוגל דרייב
  *  - גרסה 3 (23.11.2026): אנשי קשר – עמודת "תפקיד" (E), ואיש קשר שכבר קיים
  *    (אותה חברה + אותו שם) מתעדכן במקום להיכפל; נעילה נגד שמירות במקביל
+ *  - גרסה 4 (25.11.2026): לשונית "דרכי תיקון" לדוח סיור באתר – אפשרויות תיקון לכל סעיף
  ***************************************************************/
 const SHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
 const SHEET_NAME = 'contacts';
-const ARCH_SHEET_NAME = 'architects';   // גיליון האדריכלים – נוצר אוטומטית בפעם הראשונה
+const ARCH_SHEET_NAME = 'architects';
+const FIX_SHEET_NAME = 'דרכי תיקון';   // דוח סיור: מזהה סעיף | נושא | סעיף | דרך תיקון   // גיליון האדריכלים – נוצר אוטומטית בפעם הראשונה
 
 // המעקבים: שם פנימי -> שם הלשונית בגיליון
 const TRACKERS = {
@@ -22,6 +24,45 @@ const VIEW_COLS = 10;     // עמודות קריאות (לקוח, פרויקט, 
 const DATA_COL  = META_COLS + VIEW_COLS + 1;   // מכאן והלאה: הנתונים המלאים (JSON), מפוצלים לתאים
 const CHUNK     = 45000;  // תא בגוגל שיט מחזיק עד 50,000 תווים
 const ROOT_FOLDER = 'שמדר – טפסים';   // תיקייה בדרייב לתמונות ולדוחות
+
+/* ============================ דרכי תיקון (דוח סיור באתר) ============================ */
+// כל שורה = אפשרות תיקון אחת לסעיף. אפשר לערוך / למחוק / להוסיף שורות ידנית בגיליון.
+function getFixSheet_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sh = ss.getSheetByName(FIX_SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(FIX_SHEET_NAME);
+    sh.appendRow(['מזהה סעיף', 'נושא', 'סעיף', 'דרך תיקון']);
+    sh.setRightToLeft(true);
+    sh.getRange(1, 1, 1, 4).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    sh.setColumnWidth(3, 420); sh.setColumnWidth(4, 420);
+  }
+  return sh;
+}
+function readFixes_() {
+  const v = getFixSheet_().getDataRange().getValues();
+  return v.slice(1).filter(r => String(r[0]).trim() && String(r[3]).trim())
+          .map(r => ({ id: String(r[0]).trim(), text: String(r[3]).trim() }));
+}
+function addFix_(d) {   // {id, g, item, text} – לא מוסיף כפילות
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const sh = getFixSheet_();
+    const exists = readFixes_().some(r => r.id === d.id && normKey_(r.text) === normKey_(d.text));
+    if (!exists && d.id && d.text) sh.appendRow([d.id, d.g || '', d.item || '', d.text]);
+    return { status: 'ok', added: !exists };
+  } finally { lock.releaseLock(); }
+}
+function seedFixes_(rows) {   // רשימת הפתיחה – רק אם הלשונית ריקה
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const sh = getFixSheet_();
+    if (sh.getLastRow() > 1 || !rows || !rows.length) return { status: 'ok', seeded: 0 };
+    sh.getRange(2, 1, rows.length, 4).setValues(rows.map(r => [r.id, r.g || '', r.item || '', r.text]));
+    return { status: 'ok', seeded: rows.length };
+  } finally { lock.releaseLock(); }
+}
 
 /* ============================ אנשי קשר / אדריכלים (ללא שינוי) ============================ */
 
@@ -47,6 +88,9 @@ function doGet(e) {
 
   // מעקב: ?type=trk&name=handover  (אופציונלי: &since=<ms> – רק מה שהשתנה מאז)
   if (p.type === 'trk') return json_(readTracker_(p.name, Number(p.since) || 0));
+
+  // דרכי תיקון לדוח סיור: ?type=fixes
+  if (p.type === 'fixes') return json_(readFixes_());
 
   // קובץ מהדרייב (תמונת סיור): ?type=file&id=<fileId>
   if (p.type === 'file') return json_(readFile_(p.id));
@@ -79,6 +123,10 @@ function doPost(e) {
     const recs = data.recs || (data.rec ? [data.rec] : []);
     return json_(writeTracker_(data.name, recs));
   }
+
+  // דרכי תיקון: אפשרות חדשה / רשימת פתיחה
+  if (data.type === 'fix') return json_(addFix_(data));
+  if (data.type === 'fixes_seed') return json_(seedFixes_(data.rows));
 
   // קובץ לדרייב (תמונה / PDF): {type:'file', folder, filename, mime, b64}
   if (data.type === 'file') return json_(saveFile_(data));

@@ -48,6 +48,10 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 .det{margin-top:8px;display:none}
 .it.bad .det,.it.ok .det,.it.free .det{display:block}
 .ph{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center}
+.fixes{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.fixc{border:1px solid #e3cfcf;background:#fff;color:#7a1218;border-radius:16px;padding:5px 11px;font:inherit;font-size:13px;cursor:pointer;text-align:right;line-height:1.35}
+.fixc.on{background:var(--red);border-color:var(--red);color:#fff}
+.fixsave{border:1px dashed #c9a227;background:#fffbea;color:#7a5b00;border-radius:16px;padding:5px 11px;font:inherit;font-size:13px;cursor:pointer}
 .ph .th{position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
 .ph .th img{width:100%;height:100%;object-fit:cover;display:block}
 .ph .th button{position:absolute;top:2px;left:2px;border:0;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:12px}
@@ -343,12 +347,60 @@ const CHK=[
  {id:'p3',sec:'N',g:'הרכבה לפי פרטים ותוכנית',t:'ברגים מקוריים של שמדר בלבד',r:'פיגום ב.16, ב.18'},
  {id:'n1',sec:'N',g:'פריקה ממשאית',t:'פאנל אחד בכל פעם, באוזני הרמה ולא ברצועות',r:'תבניות ב.1–ב.3'},
  {id:'n2',sec:'N',g:'פריקה ממשאית',t:'קסדה ונעלי מגן לכל העובדים, כולל הנהג',r:'תבניות ב.4–ב.5'},
- {id:'n3',sec:'N',g:'הנפת תבניות',t:'רוחב מקסימלי 6 מ\', מרחק בין אוזניים עד 4 מ\', שרשראות לדופן אחת',r:'תבניות ד.1–ד.2, ד.16'},
+ {id:'n3',sec:'N',g:'הנפת פאנלים',t:'רוחב מקסימלי 6 מ\', מרחק בין אוזניים עד 4 מ\', שרשראות לדופן אחת',r:'תבניות ד.1–ד.2, ד.16'},
  {id:'n4',sec:'N',g:'הנפת פיגום',t:'אין אדם על הפיגום או מתחתיו; 4 שרשראות מתוחות לפני שחרור האום',r:'פיגום ג.3'},
  {id:'n5',sec:'N',g:'פירוק פאנלים',t:'מפינה חיצונית, ברצף טורי; קלינים וברגים לא על הפאנל',r:'תבניות ה.1–ה.13'},
  {id:'n6',sec:'N',g:'העמסה להחזרה',t:'תבניות נקיות, רחבות למטה, אביזרים בנפרד, קשור למשאית',r:'תבניות ט.1–ט.6'}
 ];
 const BY=Object.fromEntries(CHK.map(x=>[x.id,x]));
+/* ---------------------------------------------------------------- דרכי תיקון (fix suggestions per item)
+   Shared list in the contacts Google Sheet, tab "דרכי תיקון" (Apps Script v4: GET ?type=fixes, POST {type:'fix'} /
+   {type:'fixes_seed'}). FIX_DEFAULT = the starting list (approved 25.11.2026): used offline / before the script is
+   updated, and written once into an empty tab. Old script → the answer is the contacts list (has "company") → defaults. */
+const FIX_DEFAULT={"t1": ["לעגן את הפאנלים לרצפת הבטון.", "להוסיף אלמנט מונע התהפכות."], "t2": ["לפלס את משטח האחסון לשני הכיוונים.", "להעביר את הפאנלים למשטח בטון מפולס."], "t3": ["לכוון את רגלי הפילוס להטיה של 10–15° לאחור.", "ליישר פאנלים שמוטים קדימה."], "t4": ["להוסיף רגל תמיכה שנייה לפאנל ברוחב מעל 1.8 מ'.", "להשלים רגלי תמיכה חסרות."], "t5": ["להשחיל פין כתף בכל רגל.", "להשלים פיני R חסרים."], "t6": ["לפנות מעבר בטוח בין הפאנלים.", "לסלק פסולת וציוד מהמעבר."], "t7": ["לסדר מחדש – רחבים למטה וצרים למעלה.", "לפלס את בסיס הערימה."], "t8": ["להוריד את הערימה לגובה של עד 2 מ'.", "לפצל לשתי ערימות."], "t9": ["להוסיף הפרדה מעץ בין התבניות.", "לסדר כך שהפוגות לא נוגעות בתבנית אחרת."], "t10": ["להשלים קלינים או ברגים בכל חורי החיבור.", "להחליף קלינים פגומים."], "t11": ["להשלים אלמנט יישור בין כל התבניות.", "לאבטח את אלמנט היישור בברגים."], "t24": ["להוריד ברגים, אומים וקלינים מגב התבנית לפני הנפה.", "לאחסן את האביזרים במקום ייעודי."], "t12": ["להפסיק חיתוך או ריתוך בתבנית ולתאם עם שמדר.", "להסיר אביזרים לא מאושרים.", "לדווח לשמדר על נזק לתיקון."], "t13": ["להשלים ברגי דיווידג לפי התוכנית.", "לא להגדיל מרווחים בין הברגים."], "t14": ["להשלים בורגי מתיחה ואומי פרפר חסרים.", "להדק את אומי הפרפר."], "t15": ["להשלים פין כתף + פין R בכל קונזולה."], "t16": ["להוסיף קונזולה כדי שהמרווח יהיה עד 2 מ'.", "להשלים מדרך עץ 5×20 ולמסמר אותו."], "t17": ["להשלים 3 לוחות עץ במעקה.", "לקצר עץ שבולט יותר מ-30 ס\"מ."], "t18": ["לסדר את הנגטיבים לפי גודל.", "להוריד את הערימה לגובה של עד 1.8 מ'.", "להרחיק דברים שנשענים על הנגטיבים."], "t19": ["להעביר למשטח מפולס.", "להשכיב את התא."], "t20": ["לנקות שאריות בטון מהתבניות ומהפוגות."], "t21": ["להוציא ציוד פגום מהאתר ולתאם החלפה עם שמדר.", "לדווח לשמדר על עיוות לתיקון."], "t22": ["להשלים או לחזק את אוזני ההרמה.", "לא להניף פאנל עם אוזן פגומה."], "t23": ["לעבוד עם רתמה מעל 2 מ' ובקצה המבנה.", "לעגן את הרתמה לנקודה יציבה."], "p8": ["להכניס את הקונזולה לתוך וו התלייה.", "להסיר בורג ישיר לקיר ולהתקין וו תלייה."], "p9": ["להסיר את החוט השזור.", "להשלים פין כתף + פין R.", "להשלים 2 ברגי 1/2\"Wx30 עם אומים.", "להחליף מנגנון נעילה פגום."], "p10": ["להחליף לבורג דיווידג באורך לפי התוכנית.", "לנעול את אום הפרפר על הבטון ולא על הבידוד.", "להשלים אום פרפר פירקי 120X120."], "p11": ["להעביר את התלייה לקיר בטון מזוין.", "לא לתלות על קיר בלוקים."], "p4": ["למסמר את הסטופר ואת כל הקרשים במסמרי 10 ס\"מ.", "להשלים 2 ברגי 5/8\"Wx70 עם אומים."], "p5": ["להפוך את הקרשים כך שיפנו פנימה.", "למסמר את כל הקרשים דרך החורים."], "p6": ["להתקין סטופר לעמוד מעקה בקצה המשטח."], "p24": ["להשלים בורג הידוק 3/4\"Wx50 + אום.", "לסגור 2 אומים 1/2\" מכל צד של מוט ההברגה ולהוסיף שייבה בין האום לקרש."], "p7": ["להסיר את כיסוי הדיקטים מהמעקה."], "p1": ["להשלים ליגרים ואונטר ליגרים לפי החתך.", "לתקן את המרווחים לפי התוכנית."], "p2": ["להסיר גישור שלא מופיע בתוכנית.", "לתאם גישור עם התכנון בשמדר."], "p21": ["להשלים אוזן הרמה עם בסיס.", "להשלים ל-6 אומים 1/2\" בבסיס האוזן לפי הפרטים."], "p22": ["להתקין צינור 1-1/4\" בקופלינג.", "להשלים בורג 5/8\"Wx70 בקופלינג."], "p23": ["להשלים פרופיל U80 ופתה.", "להשלים בורג הידוק 3/4\"Wx50 בפתח 80X40."], "p12": ["להוריד מהפיגום ציוד שאינו תבנית עומדת.", "לא להניח פאנלים שוכבים על הפיגום."], "p13": ["להסיר תמיכות שנשענות על הפיגום.", "לא להשתמש בפיגום כבסיס ליציקה."], "p14": ["לנקות את הפיגום מכלים, מסמרים, בטון, עץ וברזל."], "p15": ["להשלים רגלי פילוס לפי רוחב הפאנל.", "לחבר את רגלי הפילוס כנדרש."], "p16": ["להזיז את רגלי הפילוס כך שיהיו עד חצי מטר מציר הקונזולה."], "p17": ["להוציא מהשימוש ולהחליף.", "לדווח לשמדר."], "p18": ["לתקן ו/או להשלים עיגון ופילוס לפי התוכנית."], "p19": ["להעביר לאחסון יציב ובטוח.", "לא לערום משטחים זה על זה."], "p20": ["לעגן את הרתמה לנקודה שאינה הפיגום."], "p3": ["להחליף ברגים לא מקוריים בברגים של שמדר."], "n1": ["לפרוק פאנל אחד בכל פעם.", "להניף באוזני הרמה בלבד, לא ברצועות."], "n2": ["קסדה ונעלי מגן לכל העובדים, כולל הנהג."], "n3": ["לא להניף ברוחב של יותר מ-6 מ'.", "מרחק של עד 4 מ' בין האוזניים.", "שרשראות לדופן אחת."], "n4": ["לפנות אנשים מהפיגום ומתחתיו.", "למתוח את 4 השרשראות לפני שחרור האום."], "n5": ["לפרק מפינה חיצונית, ברצף.", "לא להניח קלינים וברגים על הפאנל."], "n6": ["לנקות לפני העמסה.", "רחבות למטה.", "לארוז אביזרים בנפרד.", "לקשור למשאית."]};
+let FIXES=(()=>{try{return JSON.parse(localStorage.getItem('siyur_fixes_cache')||'null')||FIX_DEFAULT}catch(e){return FIX_DEFAULT}})();
+let fixCloud=false;
+async function loadFixes(){
+ try{
+  const r=await fetch(SHEETS_API+'?type=fixes&t='+Date.now());const j=await r.json();
+  if(!Array.isArray(j)||(j[0]&&('company' in j[0])))return;       // script not updated yet
+  fixCloud=true;
+  if(!j.length){ // empty tab → seed it with the starting list
+   const rows=[];Object.keys(FIX_DEFAULT).forEach(id=>{const x=BY[id];FIX_DEFAULT[id].forEach(t=>rows.push({id,g:x?x.g:'',item:x?x.t:'',text:t}))});
+   await fetch(SHEETS_API,{method:'POST',body:JSON.stringify({type:'fixes_seed',rows})});FIXES=FIX_DEFAULT;
+  }else{const m={};j.forEach(r=>{const id=String(r.id||'').trim(),t=String(r.text||'').trim();if(id&&t)(m[id]=m[id]||[]).includes(t)||m[id].push(t)});FIXES=m}
+  try{localStorage.setItem('siyur_fixes_cache',JSON.stringify(FIXES))}catch(e){}
+  if(document.getElementById('sections'))renderSections();
+ }catch(e){}
+}
+const fixKey=t=>String(t).replace(/[.\s]+$/,'');
+const fixHas=(arr,t)=>arr.some(x=>fixKey(x)===fixKey(t));
+const fixLines=n=>String(n||'').split('\n').map(l=>l.replace(/^\s*\d+[.)]\s*/,'').trim()).filter(Boolean);
+function fixHTML(id,a){
+ if(a.st!=='bad'||!BY[id])return'';
+ const L=FIXES[id]||[],used=fixLines(a.note);
+ const fresh=used.filter(t=>!fixHas(L,t));
+ return `<div class="fixes">${L.map((t,i)=>`<button class="fixc ${fixHas(used,t)?'on':''}" onclick="addFix('${id}',${i})">${esc(t)}</button>`).join('')}
+  ${fresh.length?`<button class="fixsave" onclick="saveFix('${id}')">⭐ שמור כאפשרות</button>`:''}</div>`;
+}
+function addFix(id,i){ // tap = add as a numbered line (tap again = remove)
+ const a=I(id),t=(FIXES[id]||[])[i];if(!t)return;
+ let L=fixLines(a.note);L=fixHas(L,t)?L.filter(x=>fixKey(x)!==fixKey(t)):L.concat(t);
+ a.note=L.length>1?L.map((x,k)=>(k+1)+'. '+x).join('\n'):(L[0]||'');
+ refreshIt(id);persist();
+}
+let fixT={};
+function updFixes(id){clearTimeout(fixT[id]);fixT[id]=setTimeout(()=>{const el=document.querySelector('#it-'+id+' .fixes');if(el)el.outerHTML=fixHTML(id,I(id))},500)} // refresh the chips while typing (not on blur – a tap on a chip must not be lost)
+async function saveFix(id){
+ const x=BY[id];if(!x)return;const L=FIXES[id]||(FIXES[id]=[]);
+ const add=fixLines(I(id).note).filter(t=>!fixHas(L,t)).map(t=>/[.!?:]$/.test(t)?t:t+'.');
+ if(!add.length)return;
+ add.forEach(t=>L.push(t));try{localStorage.setItem('siyur_fixes_cache',JSON.stringify(FIXES))}catch(e){}
+ refreshIt(id);
+ if(!fixCloud){toast('נשמר במכשיר – יעלה לגיליון אחרי עדכון הסקריפט');return}
+ try{for(const t of add)await fetch(SHEETS_API,{method:'POST',body:JSON.stringify({type:'fix',id,g:x.g,item:x.t,text:t})});toast('⭐ נשמר כאפשרות בגיליון')}
+ catch(e){toast('⚠ השמירה לגיליון נכשלה – נשמר במכשיר')}
+}
 const SEC_T={T:'תבניות',P:'פיגום',N:'סעיפים נוספים'};
 const FREE_TOPICS=['תבניות','פיגום','אביזרים','בטיחות','לוגיסטיקה','אחר'];
 
@@ -487,7 +539,7 @@ function itemHTML(x,removable){
 }
 function stBtn(id,k,t){return `<button class="${k} ${I(id).st===k?'on':''}" onclick="setSt('${id}','${k}')">${t}</button>`}
 function detHTML(id,a,ph){
- return `<textarea rows="${a.st==='ok'?1:2}" placeholder="${ph}" oninput="I('${id}').note=this.value;persist()">${esc(a.note)}</textarea>
+ return `<textarea rows="${a.st==='ok'?1:2}" placeholder="${ph}" oninput="I('${id}').note=this.value;persist();updFixes('${id}')">${esc(a.note)}</textarea>${fixHTML(id,a)}
   <div class="ph">${a.ph.map((p,i)=>`<div class="th"><img src="${p}" onclick="viewPh('${id}',${i})"><button onclick="rmPh('${id}',${i})">✕</button></div>`).join('')}
    <button class="phbtn" onclick="pickPh('${id}','camera')"><b>📷</b>צלם</button><button class="phbtn" onclick="pickPh('${id}','picker')"><b>🖼️</b>מהגלריה</button></div>`;
 }
@@ -813,6 +865,7 @@ function renderAll(){META.forEach(k=>document.getElementById(k).value=F[k]||'');
  const [d,vs,cl,ro,inn]=await Promise.all([IDB.get('draft'),IDB.get('visits'),IDB.get('clients'),IDB.get('roles'),IDB.get('internal')]);
  F=d||blank();V=vs||[];ROLES_DB=ro||{};INTERNAL=inn||[];if(cl&&!Object.keys(CL).length)CL=cl;
  PHMAP=(await IDB.get('phmap'))||{};
+ loadFixes();
  if(window.Cloud)setTimeout(()=>Cloud.sync(SY_CLOUD,{quiet:true}),900);
  if(!F.cc)F.cc=[];
  if(!F.escorts)F.escorts=F.escort?[{r:'',n:F.escort,other:true}]:[];delete F.escort;

@@ -96,6 +96,17 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 .paper .kpi .k1{background:#fdf0f0;border-color:#f0c9cb;color:#a3141c}.paper .kpi .k2{background:#eef5fe;border-color:#c5dbf6;color:#16559f}.paper .kpi .k3{background:#eef8f2;border-color:#c4e6d1;color:#1e7a46}
 .paper h3{font-size:15px;margin:16px 0 6px;color:#bc2129}
 .paper .wrap{border:1px solid #ead6d6;border-radius:8px;overflow:hidden}
+.paper .fc{border:1px solid #ead6d6;border-inline-start:4px solid #bc2129;border-radius:8px;padding:8px 12px 10px;margin-bottom:8px;font-size:13.5px;line-height:1.5;background:#fff}
+.paper .fc.okd{border-color:#d7ecdf;border-inline-start-color:#2e9e5b}
+.paper .fh{display:flex;gap:8px;align-items:baseline}
+.paper .fn{color:#999;min-width:16px}
+.paper .fg{font-weight:700;flex:1}
+.paper .fs{font-weight:700;white-space:nowrap}
+.paper .fx{margin-top:2px}
+.paper .ff{white-space:pre-line;color:#b0141d;margin-top:4px}
+.paper .fc.okd .ff{color:#333}
+.paper .fr{font-size:11.5px;color:#666;margin-top:3px}
+.paper .fc .pp{margin-top:8px}
 .paper table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.45}
 .paper th{background:#fbe4e4;color:#bc2129;font-weight:700;padding:7px 8px;text-align:right}
 .paper td{padding:7px 9px;border-top:1px solid #f1e6e6;vertical-align:top}
@@ -108,7 +119,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#bc2129;box-sh
 .paper tr.okd td.f{color:#333;font-weight:400}
 .paper tr.pics td{border-top:0;padding-top:0}
 .paper .pp{display:flex;flex-wrap:wrap;gap:8px}
-.paper .pp img{width:calc((100% - 16px) / 3);height:182px;object-fit:contain;background:#f3f3f3;border-radius:5px;border:1px solid #ddd} /* whole photo, 3 per row (~6.3×4.8 cm) */
+.paper .pp img{width:calc((100% - 16px) / 3);height:auto;aspect-ratio:4/3;object-fit:contain;background:#f3f3f3;border-radius:5px;border:1px solid #ddd} /* whole photo, 3 per row (~6.3×4.8 cm) */
 .paper .oklist{columns:2;column-gap:24px;font-size:12.5px;margin:0;padding:8px 22px 8px 12px;border:1px solid #d7ecdf;border-radius:8px;background:#f7fcf9}
 .paper .oklist li{margin:2px 0;break-inside:avoid}
 .paper .gen{white-space:pre-line;font-size:13.5px;border:1px solid #ead6d6;border-radius:8px;padding:10px 12px}
@@ -571,12 +582,14 @@ function rows(){
   if(a.st==='bad')out.bad.push(r);else if((a.ph&&a.ph.length)||(a.note||'').trim())out.okDoc.push(r);else out.ok.push(r)});
  let n=0;out.bad.forEach(r=>r.n=++n);out.okDoc.forEach(r=>r.n=++n);return out;
 }
-function findingRows(list,cls,mark){
- return list.map(r=>`<tr class="${cls}"><td class="n">${r.n}</td><td><b>${esc(r.g)}</b><br>${esc(r.t)}</td><td class="f">${esc(r.note)||'—'}</td><td class="s ${'s'+cls}">${mark}</td><td class="r">${esc(r.ref)}</td></tr>`+
-  (r.ph.length?`<tr class="pics ${cls}"><td></td><td colspan="4"><div class="pp">${r.ph.map(p=>`<img src="${p}">`).join('')}</div></td></tr>`:'')).join('');
+function findingRows(list,cls,mark){ // one card per finding, every line full width (reads well on a phone and in the PDF)
+ const lbl=cls==='bad'?'מה לתקן':'הערה';
+ return list.map(r=>`<div class="fc ${cls}"><div class="fh"><span class="fn">${r.n}</span><span class="fg">${esc(r.g)}</span><span class="fs ${'s'+cls}">${mark}</span></div>
+  <div class="fx">${esc(r.t)}</div>${(r.note||'').trim()?`<div class="ff"><b>${lbl}:</b> ${esc(r.note)}</div>`:''}${r.ref?`<div class="fr">סעיף בהוראות: ${esc(r.ref)}</div>`:''}
+  ${r.ph.length?`<div class="pp">${r.ph.map(p=>`<img src="${p}">`).join('')}</div>`:''}</div>`).join('');
 }
 function renderSummary(){
- const R=rows();
+ const R=rows();{const p=document.getElementById('paper');p.style.width='';p.style.maxWidth=''}
  const head=`<thead><tr><th style="text-align:center">#</th><th>נושא</th><th>ממצא</th><th style="text-align:center">סטטוס</th><th>סעיף בהוראות</th></tr></thead>`;
  let h=`<div class="lh"><img src="${LOGO}"></div><div class="title">דוח סיור באתר – ציוד תבניות ופיגום</div>
  <div class="info"><div><b>לקוח:</b> ${esc(F.client)}</div><div><b>תאריך הסיור:</b> ${fmtD(F.date)}</div>
@@ -584,8 +597,8 @@ function renderSummary(){
   ${F.stage?`<div><b>קומה / שלב:</b> ${esc(F.stage)}</div>`:''}${escText()?`<div class="w"><b>מלווים מטעם הלקוח:</b> ${esc(escText())}</div>`:''}
   <div class="w"><b>עורך הסיור והדוח:</b> גיא בארי, שמדר טכנולוגיות בע"מ</div></div>
  <div class="kpi"><div class="k1"><b>${R.bad.length}</b>ליקויים</div><div class="k3"><b>${R.ok.length+R.okDoc.length}</b>נבדקו ותקינים</div></div>`;
- if(R.bad.length)h+=`<h3>ליקויים לטיפול</h3><div class="wrap"><table>${head}<tbody>${findingRows(R.bad,'bad','✗ ליקוי')}</tbody></table></div>`;
- if(R.okDoc.length)h+=`<h3>נבדקו ונמצאו תקינים – תיעוד</h3><div class="wrap"><table>${head.replace('<th>ממצא</th>','<th>הערה</th>')}<tbody>${findingRows(R.okDoc,'okd','✓ תקין')}</tbody></table></div>`;
+ if(R.bad.length)h+=`<h3>ליקויים לטיפול</h3>${findingRows(R.bad,'bad','✗ ליקוי')}`;
+ if(R.okDoc.length)h+=`<h3>נבדקו ונמצאו תקינים – תיעוד</h3>${findingRows(R.okDoc,'okd','✓ תקין')}`;
  if(R.ok.length)h+=`<h3>נבדקו ונמצאו תקינים</h3><ul class="oklist">${R.ok.map(r=>`<li>${esc(r.g)} – ${esc(r.t)}</li>`).join('')}</ul>`;
  if(F.general.trim())h+=`<h3>הערות כלליות</h3><div class="gen">${esc(F.general)}</div>`;
  if(R.bad.length)h+=`<p style="font-size:12px;color:#555;margin:14px 0 0">הסעיפים מתייחסים להוראות השימוש והבטיחות של שמדר טכנולוגיות: תבניות מתכת דגם אפולו (גרסה 2.61) ופיגום כבד תלוי (גרסה 2.81). הינכם נדרשים לטפל בליקויים באופן מיידי.</p>`;
@@ -635,6 +648,7 @@ function fitImg(src,w,h,k){return new Promise(ok=>{const im=new Image();im.onloa
 async function buildPdf(){ // -> File
  renderSummary();
  const el=document.getElementById('paper');
+ const oldW=el.style.width,oldMW=el.style.maxWidth;el.style.width='800px';el.style.maxWidth='800px'; // same page layout on every device
  const scale=window.innerWidth<700?2:2.5;
  const imgs=[...el.querySelectorAll('.pp img')];
  for(const im of imgs){const w=im.clientWidth,h=im.clientHeight;if(w&&h){im.dataset.orig=im.src;im.src=await fitImg(im.src,w,h,scale*1.2);im.style.objectFit='fill'}}
@@ -644,7 +658,8 @@ async function buildPdf(){ // -> File
  const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'a4',compress:true});
  const pw=210,ph=297,mg=8;const imgW=pw-2*mg;const pxPerMm=cv.width/imgW;const pageH=(ph-2*mg)*pxPerMm;
  const top=el.getBoundingClientRect().top;
- const brk=[...el.querySelectorAll('tr,.title,.info,.kpi,h3,li,.gen,.lh,.oklist,.wrap,.sign,.copies,p')].map(r=>(r.getBoundingClientRect().bottom-top)*scale);
+ const brk=[...el.querySelectorAll('tr,.fc,.title,.info,.kpi,li,.gen,.lh,.oklist,.wrap,.sign,.copies,p')].map(r=>(r.getBoundingClientRect().bottom-top)*scale);
+ el.style.width=oldW;el.style.maxWidth=oldMW;
  const lgW=110,lgH=lgW*82/576,lgTop=6,off=lgTop+lgH+4;
  let y=0,first=true;
  while(y<cv.height-2){

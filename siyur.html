@@ -278,6 +278,7 @@ body.embedded .sticky{top:52px}
 <!-- ===================== TRACKER ===================== -->
 <section class="view trk" id="v-trk">
   <div class="note" style="margin-bottom:10px">כל דוח נשמר כאן בהפקת PDF או בשליחה. "פתח" טוען את הדוח לטופס לתיקון ושליחה חוזרת.</div>
+  <div style="margin-bottom:10px"><button class="btn sec" onclick="document.getElementById('impFile').click()">📥 ייבוא טיוטה מקלוד</button><input type="file" id="impFile" accept=".json,application/json,text/plain" hidden onchange="importDraft(this)"></div>
   <table><thead><tr><th>פרויקט</th><th>לקוח</th><th>תאריך סיור</th><th>ליקויים</th><th>סטטוס</th><th></th></tr></thead><tbody id="trkBody"></tbody></table>
 </section>
 </main>
@@ -624,6 +625,14 @@ function removeFree(i){const id=F.free[i].id;F.free.splice(i,1);delete F.it[id];
 function jump(id){const e=document.getElementById('it-'+id);if(e)e.scrollIntoView({behavior:'smooth',block:'center'})}
 function closeM(){document.getElementById('mdl').classList.remove('on')}
 function ask(t,ok){const b=document.getElementById('mdlBox');b.innerHTML=`<p>${t}</p><div style="display:flex;gap:8px"><button class="btn" id="okB">אישור</button><button class="btn sec" onclick="closeM()">ביטול</button></div>`;document.getElementById('mdl').classList.add('on');document.getElementById('okB').onclick=()=>{closeM();ok()}}
+/* a draft prepared outside the app (by Claude, from site photos) – a .json file {smdr_siyur_draft:1,state:{…}} */
+function importDraft(inp){const f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+ const r=new FileReader();r.onload=()=>{let j;try{j=JSON.parse(r.result)}catch(e){toast('⚠ הקובץ אינו טיוטה תקינה');return}
+  const st=j&&j.smdr_siyur_draft?j.state:null;if(!st||typeof st!=='object'){toast('⚠ הקובץ אינו טיוטה של דוח סיור');return}
+  const go=()=>{F=Object.assign(blank(),st,{id:null,status:'draft'});F.it=F.it||{};renderAll();persist();show('form');scrollTo(0,0);toast('✓ הטיוטה נטענה לטופס – אפשר לערוך ולהפיק')};
+  const busy=F&&(F.project||F.client||Object.values(F.it||{}).some(a=>a&&(a.st||a.note||(a.ph||[]).length)));
+  if(busy)ask('לטעון את הטיוטה? הטופס הפתוח כרגע יוחלף (דוחות שמורים נשארים במעקב).',go);else go()};
+ r.readAsText(f)}
 function resetForm(){ask('לפתוח טופס חדש? הטופס הנוכחי יימחק (דוחות שמורים נשארים במעקב).',()=>{F=blank();renderAll();persist();scrollTo(0,0)})}
 
 /* ---------------------------------------------------------------- report */

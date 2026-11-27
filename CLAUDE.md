@@ -103,3 +103,7 @@ The toolbar has oval view tabs (`showView(name)`): `wo` = the original work-orde
 - List = `FIXES` {itemId:[text…]}: loaded by `loadFixes()` from the contacts Sheet tab **"דרכי תיקון"** (columns מזהה סעיף | נושא | סעיף | דרך תיקון – the user may edit it by hand), cached in `localStorage['siyur_fixes_cache']`; `FIX_DEFAULT` (the list the user approved on 2026-11-25) is used offline / with the old script, and is written once into an empty tab (`fixes_seed`).
 - Apps Script **v4** (`apps-script/Code.gs`): `GET ?type=fixes`, `POST {type:'fix', id, g, item, text}` (no duplicates), `POST {type:'fixes_seed', rows}` (only when the tab is empty). With the old script `?type=fixes` returns the contacts list (rows have `company`) → the form keeps `FIX_DEFAULT` and saves new options on the device only.
 - The optional-bank item n3 is now "הנפת פאנלים" (was "הנפת תבניות").
+
+## Draft import – ייבוא טיוטה (added 2026-11-27)
+
+- siyur.html's tracker view has "📥 ייבוא טיוטה מקלוד" (`importDraft`): picks a `.json` file `{smdr_siyur_draft:1, state:{…F…}}` (photos as data URLs inside `it[id].ph`) and loads it into the form as a new draft (`id:null`, status draft; asks before replacing a form that has content). Used when Claude prepares a site-visit report from photos the user sends in chat: Claude fills the state, sends the .json file, the user imports it on his phone/PC, edits and produces the report from the app (so it also lands in מעקב סיורים).
